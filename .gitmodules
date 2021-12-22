@@ -1,0 +1,3 @@
+[submodule "spice-audio-tools"]
+	path = spice-audio-tools
+	url = https://github.com/Ttl/spice-audio-tools

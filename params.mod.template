@@ -1,0 +1,29 @@
+*** TEC Parameters ***
+* Thickness of TEC. Units: ?
+.PARAM L_TEC = {{ l_tec }}
+* Thermal conductivity of TEC. Units: ?
+.PARAM k_TEC = {{ k_tec }}
+* Area of TEC. Units: ?
+.PARAM A_TEC = {{ a_tec }}
+* Mass of TEC. Units: ?
+.PARAM m_TEC = {{ m_tec }}
+* Specific heat capacity of TEC. Units: ?
+.PARAM c_TEC = {{ c_tec }}
+* Seebeck coefficient. Units: ?
+* TODO: TEMP DEPENDENT
+.PARAM alpha = {{ alpha }}
+
+*** Metal Heating Plate Parameters ***
+* Thickness of metal. Units: ?
+.PARAM L_METAL = {{ l_metal }}
+* Thermal conductivity of metal. Units: ?
+.PARAM k_METAL = {{ k_metal }}
+* Area of metal. Units: ?
+.PARAM A_METAL = {{ a_metal }}
+* Mass of metal plate
+.PARAM m_METAL = {{ m_metal }}
+* Specific heat capacity of metal plate
+.PARAM c_METAL = {{ c_metal }}
+
+*** Electrical Circuit Parameters ***
+.PARAM Rs = {{ rs }}
