@@ -54,8 +54,9 @@ V2 tamb 0 {AMBIENT_TEMP}
 *** Control ***
 .control
     save v(th)
-    tran 10u 100m
-    wrdata output v(th)
+    *** TODO: Synchronize timesteps with gen_sim waveform
+    tran 10m 1
+    wrdata output/outputvalues v(th)
     exit
 .endc
 

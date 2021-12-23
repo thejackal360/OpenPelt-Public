@@ -70,18 +70,38 @@ def call_ngspice():
 
 ### Plot values ###
 # TODO: Need real voltages
-def plot_values():
-    plt.plot(np.fromstring(wave.open("output.wav").readframes(-1), "Int16"))
+def get_values():
+    with open("output/outputvalues", "r") as f:
+        lines = [l.split() for l in f.read().split("\n")]
+        t = [float(entry[0]) for entry in lines if entry != []]
+        y = [float(entry[1]) for entry in lines if entry != []]
+        return [t, y]
 
 ### Clean directory ###
 # TODO
 
 if __name__ == "__main__":
     import math
-    tcp = tec_pms(0.20, 0.50, 0.20, 0.10, 0.90, 0.10, 0.1, 0.2, 0.65, 0.1, 0.3, 40.00, 27.00)
-    t = np.linspace(0.00, 5.00, 1000)
-    y = float(np.iinfo(np.int16).max) * np.sin(2.00 * math.pi * 100.00 * t)
+    # TEC1-12706
+    tcp = tec_pms(l_tec = 3.60e-3, # [m], TEC thickness \
+                  k_tec = 1.20, # [W/m*K], Bi2Te3 conductivity \
+                  a_tec = 40.0e-3 * 40.0e-3, # [m^2], TEC surface area \
+                  m_tec = 25e-3, # [kg], TEC mass (assume ceramic is most TEC mass) \
+                  c_tec = 0.323e3, # [J/kg*K], ceramic specific heat cap \
+                  alpha = 53e-3, # [V/K], Seebeck coefficient \
+                  l_metal = 6.35e-3, # [m], 1/4in thick plate \
+                  k_metal = 150.00, # [W/m*K], aluminum plate \
+                  a_metal = 40.0e-3 * 40.0e-3, # [m^2], metal plate surface area \
+                  m_metal = 2710.0 * 40.0e-3 * 40.0e-3 * 6.35e-3, # [kg], mass of plate \
+                  c_metal = 0.89e3, # [J/kg*K], aluminum specific heat cap \
+                  rs = 4.00, # [Ohm], TEC electrical resistance \
+                  ambient_t = 27.00) # [C], ambient temp of ngspice sims
+    t = np.linspace(10.00e-3, 1.00, 1000)
+    y = len(t) * [4000.00]
+    # plt.plot(t, y)
     gen_wav(t, y)
     gen_pms(tcp)
     call_ngspice()
-    # plot_values()
+    [t0, y0] = get_values()
+    plt.plot(t0, y0)
+    plt.show()
