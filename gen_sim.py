@@ -71,3 +71,13 @@ def plot_values():
 
 ### Clean directory ###
 # TODO
+
+if __name__ == "__main__":
+    import math
+    tcp = tec_pms(0.20, 0.50, 0.20, 0.10, 0.90, 0.10, 0.1, 0.2, 0.65, 0.1, 0.3, 40.00)
+    t = np.linspace(0.00, 5.00, 1000.00)
+    y = np.sin(2.00 * math.pi * 100.00 * t)
+    gen_wav(y)
+    gen_pms(tcp)
+    call_ngspice()
+    plot_values()
