@@ -27,3 +27,6 @@
 
 *** Electrical Circuit Parameters ***
 .PARAM Rs = {{ rs }}
+
+*** Ambient Temperature ***
+.PARAM AMBIENT_TEMP = {{ ambient_t }}

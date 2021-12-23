@@ -2,8 +2,8 @@
 
 from jinja2 import Template
 import matplotlib.pyplot as plt
-from scipy.io.wavfile import write
-import wave
+import numpy as np
+import os
 
 ### Constants ###
 SAMPLE_RATE = 44100 # Hz
@@ -21,7 +21,8 @@ class tec_pms:
                        a_metal, \
                        m_metal, \
                        c_metal, \
-                       rs):
+                       rs, \
+                       ambient_t):
         self.l_tec = l_tec
         self.k_tec = k_tec
         self.a_tec = a_tec
@@ -34,35 +35,38 @@ class tec_pms:
         self.m_metal = m_metal
         self.c_metal = c_metal
         self.rs = rs
+        self.ambient_t = ambient_t
 
 ### Generate wav file ###
 # data -> a numpy array of data
-def gen_wav(data):
-    write("output/wave.wav", SAMPLE_RATE, data.astype(np.int16))
+def gen_wav(t, data):
+    assert len(t) == len(data)
+    with open("output/inputvalues", "w") as inp:
+        for i in range(len(t)):
+            inp.write(str(t[i]) + " " + str(data[i]) + "\n")
 
 ### Generate params file ###
 def gen_pms(pms_obj):
     with open("params.mod.template", "r") as p:
         t = Template(p.read())
         with open("output/params.mod", "w") as m:
-            m.write(t.render(l_tec   = pms_obj.l_tec, \
-                             k_tec   = pms_obj.k_tec, \
-                             a_tec   = pms_obj.a_tec, \
-                             m_tec   = pms_obj.m_tec, \
-                             c_tec   = pms_obj.c_tec, \
-                             alpha   = pms_obj.alpha, \
-                             l_metal = pms_obj.l_metal, \
-                             k_metal = pms_obj.k_metal, \
-                             a_metal = pms_obj.a_metal, \
-                             m_metal = pms_obj.m_metal, \
-                             c_metal = pms_obj.c_metal, \
-                             rs      = pms_obj.rs))
+            m.write(t.render(l_tec     = pms_obj.l_tec, \
+                             k_tec     = pms_obj.k_tec, \
+                             a_tec     = pms_obj.a_tec, \
+                             m_tec     = pms_obj.m_tec, \
+                             c_tec     = pms_obj.c_tec, \
+                             alpha     = pms_obj.alpha, \
+                             l_metal   = pms_obj.l_metal, \
+                             k_metal   = pms_obj.k_metal, \
+                             a_metal   = pms_obj.a_metal, \
+                             m_metal   = pms_obj.m_metal, \
+                             c_metal   = pms_obj.c_metal, \
+                             rs        = pms_obj.rs, \
+                             ambient_t = pms_obj.ambient_t))
 
 ### Call ngspice ###
 def call_ngspice():
-    os.system("./spice-audio-tools/wavtospice.py output/wave.wav output/inputvalues")
     os.system("ngspice -b circuit.cir")
-    os.system("./spice-audio-tools/spicetowav.py output/output output/output.wav")
 
 ### Plot values ###
 # TODO: Need real voltages
@@ -74,10 +78,10 @@ def plot_values():
 
 if __name__ == "__main__":
     import math
-    tcp = tec_pms(0.20, 0.50, 0.20, 0.10, 0.90, 0.10, 0.1, 0.2, 0.65, 0.1, 0.3, 40.00)
-    t = np.linspace(0.00, 5.00, 1000.00)
-    y = np.sin(2.00 * math.pi * 100.00 * t)
-    gen_wav(y)
+    tcp = tec_pms(0.20, 0.50, 0.20, 0.10, 0.90, 0.10, 0.1, 0.2, 0.65, 0.1, 0.3, 40.00, 27.00)
+    t = np.linspace(0.00, 5.00, 1000)
+    y = float(np.iinfo(np.int16).max) * np.sin(2.00 * math.pi * 100.00 * t)
+    gen_wav(t, y)
     gen_pms(tcp)
     call_ngspice()
-    plot_values()
+    # plot_values()

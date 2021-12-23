@@ -2,6 +2,8 @@
 
 .INC "output/params.mod"
 
+.OPTION ITL1 = 1e5
+
 * TEC thermal resistance. Units: ?
 * TODO: TEMP DEPENDENT
 .PARAM R_TEC = (L_TEC/(k_TEC^A_TEC))
@@ -13,12 +15,16 @@
 
 * Source voltage
 a1 %v([tecplus]) filesrc
+.model filesrc filesource (file="output/inputvalues" amploffset=[0] amplscale=[1]
++                          timeoffset=0 timescale=1
++                          timerelative=false amplstep=false)
 
 * Rs - source resistance
 R1 tecplus seebeck {Rs}
 
 * Seebeck effect
-B1 seebeck tecminus V={alpha}^(v(th)-v(tc))
+* TECminus is grounded
+B1 seebeck 0 V={alpha}*(v(th)-v(tc))
 
 *** Thermal Circuit ***
 
@@ -35,22 +41,22 @@ C2 tamb th {CAP_METAL}
 R3 tamb th {R_METAL}
 
 * Q_pc heat pumping current. Units: ?
-B2 tc tamb I={alpha}^i(R1)^v(tc)
-
-* Ohmic heat current to coldside
-B3 tamb tc I=i(R1)^i(R1)^{Rs}/2
-
-* Ohmic heat current to hotside
-B4 tamb th I=i(R1)^i(R1)^{Rs}/2
+* Ohmic heat current to coldside. Units: ?
+B3 tamb tc I=({alpha}*((v(tecplus) - v(seebeck))/{Rs})*v(tc))-(((v(tecplus) - v(seebeck))/{Rs})*((v(tecplus) - v(seebeck))/{Rs})*{Rs}/2)
 
 * Q_ph heat pumping current. Units: ?
-B5 tamb th I={alpha}^i(R1)^v(th)
+* Ohmic heat current to hotside. Units: ?
+B5 tamb th I=({alpha}*((v(tecplus) - v(seebeck))/{Rs})*v(th))+(((v(tecplus) + v(seebeck))/{Rs})*((v(tecplus) - v(seebeck))/{Rs})*{Rs}/2)
+
+* Ambient temperature is a parameter
+V2 tamb 0 {AMBIENT_TEMP}
 
 *** Control ***
 .control
     save v(th)
-    tran 10u 10m
+    tran 10u 100m
     wrdata output v(th)
+    exit
 .endc
 
 .end
