@@ -20,7 +20,7 @@ a1 %v([tecplus]) filesrc
 +                          timerelative=false amplstep=false)
 
 * Rs - source resistance
-R1 tecplus seebeck {Rs}
+R1 tecplus seebeck R = {{Rs} * (1 + {tc_TEC}*(((v(th) - v(tc))/2) - {AMBIENT_TEMP}))}
 
 * Seebeck effect
 * TECminus is grounded

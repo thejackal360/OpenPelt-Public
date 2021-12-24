@@ -9,6 +9,8 @@
 .PARAM m_TEC = {{ m_tec }}
 * Specific heat capacity of TEC. Units: ?
 .PARAM c_TEC = {{ c_tec }}
+* Electrical resistivity temperature coefficient. Units: ?
+.PARAM tc_TEC = {{ tc_tec }}
 * Seebeck coefficient. Units: ?
 * TODO: TEMP DEPENDENT
 .PARAM alpha = {{ alpha }}
