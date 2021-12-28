@@ -28,7 +28,7 @@
 .PARAM c_METAL = 890.0
 
 *** Electrical Circuit Parameters ***
-.PARAM Rs = 4.0
+.PARAM Rs = 2.1
 
 *** Ambient Temperature ***
 .PARAM AMBIENT_TEMP = 27.0

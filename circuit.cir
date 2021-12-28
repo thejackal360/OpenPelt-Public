@@ -4,10 +4,12 @@
 
 * TEC thermal resistance. Units: ?
 * TODO: TEMP DEPENDENT
-.PARAM R_TEC = (L_TEC/(k_TEC^A_TEC))
-.PARAM CAP_TEC = (m_TEC^c_TEC)
-.PARAM CAP_METAL = (m_METAL^c_METAL)
-.PARAM R_METAL = (L_METAL/(k_METAL^A_METAL))
+.PARAM R_TEC = (L_TEC/(k_TEC*A_TEC))
+.PARAM CAP_TEC = (m_TEC*c_TEC)
+.PARAM CAP_METAL = (m_METAL*c_METAL)
+.PARAM R_METAL = (L_METAL/(k_METAL*A_METAL))
+
+.PARAM CAP_TEC_PLUS_CAP_METAL = CAP_TEC+CAP_METAL
 
 *** Electrical Circuit ***
 
@@ -27,35 +29,46 @@ B1 seebeck 0 V={alpha}*(v(th)-v(tc))
 *** Thermal Circuit ***
 
 * TEC thermal resistance. Units: ?
-R2 tc th {R_TEC}
+*** R2 tc th {R_TEC}
+R2 tc tctr {R_TEC}
+R4 tctr th {R_TEC}
 
 * TEC thermal capacitance. Units: ?
-C1 tc th {CAP_TEC} ic=0
+*** C1 tc th {CAP_TEC} ic=0
+C1 tc tamb {CAP_TEC} ic=0
+*** C3 th tamb {CAP_TEC} ic=0
 
 * Metal thermal capacitance. Units: ?
-C2 tamb th {CAP_METAL} ic=0
+*** C2 tamb th {CAP_METAL} ic=0
+C2 tamb th CAP_TEC_PLUS_CAP_METAL ic=0
 
 * Metal thermal resistance. Units: ?
 R3 tamb th {R_METAL}
 
 * Q_pc heat pumping current. Units: ?
 * Ohmic heat current to coldside. Units: ?
-B3 tamb tc I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))-((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
+B3 tc tctr I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
+*** B3 tc tamb I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
 
 * Q_ph heat pumping current. Units: ?
 * Ohmic heat current to hotside. Units: ?
-B5 tamb th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))+((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
+B5 tctr th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
+*** B5 tamb th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
+
+* Ohmic heating. Units: ?
+B6 tamb tctr I=((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
 
 * Ambient temperature is a parameter
 V2 tamb 0 {AMBIENT_TEMP}
 
 *** Control ***
 .control
-    save v(th)
+    save v(th) v(tc) v(tecplus)
     *** TODO: Synchronize timesteps with gen_sim waveform
-    tran 10m 1
+    tran 10m 1000
     wrdata output/outputvalues v(th)
-    exit
+    *** exit
+    plot v(th) v(tc) v(tecplus)
 .endc
 
 .end

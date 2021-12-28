@@ -69,7 +69,8 @@ def gen_pms(pms_obj):
 
 ### Call ngspice ###
 def call_ngspice():
-    os.system("ngspice -b circuit.cir")
+    os.system("ngspice circuit.cir")
+    # os.system("ngspice -b circuit.cir")
 
 ### Plot values ###
 # TODO: Need real voltages
@@ -97,15 +98,15 @@ if __name__ == "__main__":
                   a_metal = 40.0e-3 * 40.0e-3, # [m^2], metal plate surface area \
                   m_metal = 2710.0 * 40.0e-3 * 40.0e-3 * 6.35e-3, # [kg], mass of plate \
                   c_metal = 0.89e3, # [J/kg*K], aluminum specific heat cap \
-                  rs = 4.00, # [Ohm], TEC electrical resistance \
+                  rs = 2.10, # [Ohm], TEC electrical resistance \
                   ambient_t = 27.00, # [C], ambient temp of ngspice sims \
                   tc_tec = 0.004) # [Ohm/K], temp coefficient of electrical resistivity
     t = np.linspace(10.00e-3, 1.00, 1000)
-    y = len(t) * [4.00]
+    y = len(t) * [5.00]
     # plt.plot(t, y)
     gen_wav(t, y)
     gen_pms(tcp)
     call_ngspice()
-    [t0, y0] = get_values()
-    plt.plot(t0, y0)
-    plt.show()
+    # [t0, y0] = get_values()
+    # plt.plot(t0, y0)
+    # plt.show()
