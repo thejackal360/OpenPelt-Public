@@ -2,8 +2,6 @@
 
 .INC "output/params.mod"
 
-.OPTION ITL1 = 1e5
-
 * TEC thermal resistance. Units: ?
 * TODO: TEMP DEPENDENT
 .PARAM R_TEC = (L_TEC/(k_TEC^A_TEC))
@@ -32,21 +30,21 @@ B1 seebeck 0 V={alpha}*(v(th)-v(tc))
 R2 tc th {R_TEC}
 
 * TEC thermal capacitance. Units: ?
-C1 tc th {CAP_TEC}
+C1 tc th {CAP_TEC} ic=0
 
 * Metal thermal capacitance. Units: ?
-C2 tamb th {CAP_METAL}
+C2 tamb th {CAP_METAL} ic=0
 
 * Metal thermal resistance. Units: ?
 R3 tamb th {R_METAL}
 
 * Q_pc heat pumping current. Units: ?
 * Ohmic heat current to coldside. Units: ?
-B3 tamb tc I=({alpha}*((v(tecplus) - v(seebeck))/{Rs})*v(tc))-(((v(tecplus) - v(seebeck))/{Rs})*((v(tecplus) - v(seebeck))/{Rs})*{Rs}/2)
+B3 tamb tc I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))-((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
 
 * Q_ph heat pumping current. Units: ?
 * Ohmic heat current to hotside. Units: ?
-B5 tamb th I=({alpha}*((v(tecplus) - v(seebeck))/{Rs})*v(th))+(((v(tecplus) + v(seebeck))/{Rs})*((v(tecplus) - v(seebeck))/{Rs})*{Rs}/2)
+B5 tamb th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))+((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
 
 * Ambient temperature is a parameter
 V2 tamb 0 {AMBIENT_TEMP}

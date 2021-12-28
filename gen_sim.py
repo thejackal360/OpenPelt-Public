@@ -101,7 +101,7 @@ if __name__ == "__main__":
                   ambient_t = 27.00, # [C], ambient temp of ngspice sims \
                   tc_tec = 0.004) # [Ohm/K], temp coefficient of electrical resistivity
     t = np.linspace(10.00e-3, 1.00, 1000)
-    y = len(t) * [4000.00]
+    y = len(t) * [4.00]
     # plt.plot(t, y)
     gen_wav(t, y)
     gen_pms(tcp)
