@@ -8,6 +8,7 @@
 .PARAM CAP_TEC = (m_TEC*c_TEC)
 .PARAM CAP_METAL = (m_METAL*c_METAL)
 .PARAM R_METAL = (L_METAL/(k_METAL*A_METAL))
+.PARAM PELTIER_COEFF = ((k_TEC*DELTA_T_0)/I_0)
 
 .PARAM CAP_TEC_PLUS_CAP_METAL = CAP_TEC+CAP_METAL
 
@@ -46,14 +47,12 @@ C2 tamb th CAP_TEC_PLUS_CAP_METAL ic=0
 R3 tamb th {R_METAL}
 
 * Q_pc heat pumping current. Units: ?
-* Ohmic heat current to coldside. Units: ?
-B3 tc tctr I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
-*** B3 tc tamb I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
+B3 tc tctr I={PELTIER_COEFF}*((v(tecplus)-v(seebeck))/{Rs})
+*** B3 tc tctr I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
 
 * Q_ph heat pumping current. Units: ?
-* Ohmic heat current to hotside. Units: ?
-B5 tctr th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
-*** B5 tamb th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
+B5 tctr th I={PELTIER_COEFF}*((v(tecplus)-v(seebeck))/{Rs})
+*** B5 tctr th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
 
 * Ohmic heating. Units: ?
 B6 tamb tctr I=((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))

@@ -1,12 +1,12 @@
 *** TEC Parameters ***
 * Thickness of TEC. Units: ?
-.PARAM L_TEC = 0.0036
+.PARAM L_TEC = 0.0018
 * Thermal conductivity of TEC. Units: ?
 .PARAM k_TEC = 1.2
 * Area of TEC. Units: ?
 .PARAM A_TEC = 0.0016
 * Mass of TEC. Units: ?
-.PARAM m_TEC = 0.025
+.PARAM m_TEC = 0.0125
 * Specific heat capacity of TEC. Units: ?
 .PARAM c_TEC = 323.0
 * Electrical resistivity temperature coefficient. Units: ?
@@ -32,3 +32,7 @@
 
 *** Ambient Temperature ***
 .PARAM AMBIENT_TEMP = 27.0
+
+*** Reference Operating Point ***
+.PARAM DELTA_T_0 = 30.0
+.PARAM I_0 = 2.5

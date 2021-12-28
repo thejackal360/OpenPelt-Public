@@ -23,7 +23,9 @@ class tec_pms:
                        c_metal, \
                        rs, \
                        ambient_t, \
-                       tc_tec):
+                       tc_tec, \
+                       delta_t_0, \
+                       i_0):
         self.l_tec     = l_tec
         self.k_tec     = k_tec
         self.a_tec     = a_tec
@@ -38,6 +40,8 @@ class tec_pms:
         self.rs        = rs
         self.ambient_t = ambient_t
         self.tc_tec    = tc_tec
+        self.delta_t_0 = delta_t_0
+        self.i_0       = i_0
 
 ### Generate wav file ###
 # data -> a numpy array of data
@@ -65,7 +69,9 @@ def gen_pms(pms_obj):
                              c_metal   = pms_obj.c_metal, \
                              rs        = pms_obj.rs, \
                              ambient_t = pms_obj.ambient_t, \
-                             tc_tec    = pms_obj.tc_tec))
+                             tc_tec    = pms_obj.tc_tec, \
+                             delta_t_0 = pms_obj.delta_t_0, \
+                             i_0       = pms_obj.i_0))
 
 ### Call ngspice ###
 def call_ngspice():
@@ -87,10 +93,10 @@ def get_values():
 if __name__ == "__main__":
     import math
     # TEC1-12706
-    tcp = tec_pms(l_tec = 3.60e-3, # [m], TEC thickness \
+    tcp = tec_pms(l_tec = 3.60e-3 / 2.00, ### 3.60e-3, # [m], TEC thickness \
                   k_tec = 1.20, # [W/m*K], Bi2Te3 conductivity \
                   a_tec = 40.0e-3 * 40.0e-3, # [m^2], TEC surface area \
-                  m_tec = 25e-3, # [kg], TEC mass (assume ceramic is most TEC mass) \
+                  m_tec = 25e-3 / 2.00, ### 25e-3, # [kg], TEC mass (assume ceramic is most TEC mass) \
                   c_tec = 0.323e3, # [J/kg*K], ceramic specific heat cap \
                   alpha = 53e-3, # [V/K], Seebeck coefficient \
                   l_metal = 6.35e-3, # [m], 1/4in thick plate \
@@ -100,7 +106,9 @@ if __name__ == "__main__":
                   c_metal = 0.89e3, # [J/kg*K], aluminum specific heat cap \
                   rs = 2.10, # [Ohm], TEC electrical resistance \
                   ambient_t = 27.00, # [C], ambient temp of ngspice sims \
-                  tc_tec = 0.004) # [Ohm/K], temp coefficient of electrical resistivity
+                  tc_tec = 0.004, # [Ohm/K], temp coefficient of electrical resistivity \
+                  delta_t_0 = 30.00, # [K], reference operating point temperature difference \
+                  i_0 = 2.50) # [A], reference operating point current
     t = np.linspace(10.00e-3, 1.00, 1000)
     y = len(t) * [5.00]
     # plt.plot(t, y)
