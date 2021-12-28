@@ -9,6 +9,7 @@
 .PARAM CAP_METAL = (m_METAL*c_METAL)
 .PARAM R_METAL = (L_METAL/(k_METAL*A_METAL))
 .PARAM PELTIER_COEFF = ((k_TEC*DELTA_T_0)/I_0)
+.PARAM R_CONV_TEC = (1.00/(h_TEC*A_TEC))
 
 .PARAM CAP_TEC_PLUS_CAP_METAL = CAP_TEC+CAP_METAL
 
@@ -40,11 +41,15 @@ C1 tc tamb {CAP_TEC} ic=0
 *** C3 th tamb {CAP_TEC} ic=0
 
 * Metal thermal capacitance. Units: ?
-*** C2 tamb th {CAP_METAL} ic=0
-C2 tamb th CAP_TEC_PLUS_CAP_METAL ic=0
+C2 tamb th {CAP_METAL} ic=0
+*** C2 tamb th CAP_TEC_PLUS_CAP_METAL ic=0
 
 * Metal thermal resistance. Units: ?
-R3 tamb th {R_METAL}
+*** R3 tamb th {R_METAL}
+
+* Convection resistance. Units: ?
+R3 tamb th {R_CONV_TEC}
+R5 tamb tc {R_CONV_TEC}
 
 * Q_pc heat pumping current. Units: ?
 B3 tc tctr I={PELTIER_COEFF}*((v(tecplus)-v(seebeck))/{Rs})
@@ -62,12 +67,13 @@ V2 tamb 0 {AMBIENT_TEMP}
 
 *** Control ***
 .control
-    save v(th) v(tc) v(tecplus)
+    save v(th)
+    save v(tc)
     *** TODO: Synchronize timesteps with gen_sim waveform
-    tran 10m 1000
-    wrdata output/outputvalues v(th)
-    *** exit
-    plot v(th) v(tc) v(tecplus)
+    tran 20 10000
+    wrdata output/th_output v(th)
+    wrdata output/tc_output v(tc)
+    exit
 .endc
 
 .end

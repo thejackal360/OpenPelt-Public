@@ -25,7 +25,8 @@ class tec_pms:
                        ambient_t, \
                        tc_tec, \
                        delta_t_0, \
-                       i_0):
+                       i_0, \
+                       h_tec):
         self.l_tec     = l_tec
         self.k_tec     = k_tec
         self.a_tec     = a_tec
@@ -42,6 +43,7 @@ class tec_pms:
         self.tc_tec    = tc_tec
         self.delta_t_0 = delta_t_0
         self.i_0       = i_0
+        self.h_tec     = h_tec
 
 ### Generate wav file ###
 # data -> a numpy array of data
@@ -71,7 +73,8 @@ def gen_pms(pms_obj):
                              ambient_t = pms_obj.ambient_t, \
                              tc_tec    = pms_obj.tc_tec, \
                              delta_t_0 = pms_obj.delta_t_0, \
-                             i_0       = pms_obj.i_0))
+                             i_0       = pms_obj.i_0, \
+                             h_tec     = pms_obj.h_tec))
 
 ### Call ngspice ###
 def call_ngspice():
@@ -81,11 +84,15 @@ def call_ngspice():
 ### Plot values ###
 # TODO: Need real voltages
 def get_values():
-    with open("output/outputvalues", "r") as f:
-        lines = [l.split() for l in f.read().split("\n")]
-        t = [float(entry[0]) for entry in lines if entry != []]
-        y = [float(entry[1]) for entry in lines if entry != []]
-        return [t, y]
+    with open("output/th_output", "r") as th_f:
+        with open("output/tc_output", "r") as tc_f:
+            th_lines = [l.split() for l in th_f.read().split("\n")]
+            th_t = [float(entry[0]) for entry in th_lines if entry != []]
+            th_y = [float(entry[1]) for entry in th_lines if entry != []]
+            tc_lines = [l.split() for l in tc_f.read().split("\n")]
+            tc_t = [float(entry[0]) for entry in tc_lines if entry != []]
+            tc_y = [float(entry[1]) for entry in tc_lines if entry != []]
+            return th_y[len(th_y)-1] - tc_y[len(tc_y)-1]
 
 ### Clean directory ###
 # TODO
@@ -108,13 +115,15 @@ if __name__ == "__main__":
                   ambient_t = 27.00, # [C], ambient temp of ngspice sims \
                   tc_tec = 0.004, # [Ohm/K], temp coefficient of electrical resistivity \
                   delta_t_0 = 30.00, # [K], reference operating point temperature difference \
-                  i_0 = 2.50) # [A], reference operating point current
+                  i_0 = 2.50, # [A], reference operating point current \
+                  h_tec = 12.12) # [W/m2*K], convective heat transfer coefficient \
     t = np.linspace(10.00e-3, 1.00, 1000)
     y = len(t) * [5.00]
     # plt.plot(t, y)
     gen_wav(t, y)
     gen_pms(tcp)
     call_ngspice()
-    # [t0, y0] = get_values()
+    final_delta_t = get_values()
+    print(final_delta_t)
     # plt.plot(t0, y0)
     # plt.show()

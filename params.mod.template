@@ -1,6 +1,8 @@
 *** TEC Parameters ***
 * Thickness of TEC. Units: ?
 .PARAM L_TEC = {{ l_tec }}
+* Thermal convection coefficient of TEC. Units: ?
+.PARAM h_TEC = {{ h_tec }}
 * Thermal conductivity of TEC. Units: ?
 .PARAM k_TEC = {{ k_tec }}
 * Area of TEC. Units: ?

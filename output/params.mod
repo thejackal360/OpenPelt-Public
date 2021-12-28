@@ -1,6 +1,8 @@
 *** TEC Parameters ***
 * Thickness of TEC. Units: ?
 .PARAM L_TEC = 0.0018
+* Thermal convection coefficient of TEC. Units: ?
+.PARAM h_TEC = 12.12
 * Thermal conductivity of TEC. Units: ?
 .PARAM k_TEC = 1.2
 * Area of TEC. Units: ?
