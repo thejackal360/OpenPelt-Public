@@ -22,11 +22,12 @@ a1 %v([tecplus]) filesrc
 +                          timerelative=false amplstep=false)
 
 * Rs - source resistance
-R1 tecplus seebeck R = {{Rs} * (1 + {tc_TEC}*(((v(th) - v(tc))/2) - {AMBIENT_TEMP}))}
+*** R1 tecplus seebeck R = {{Rs} * (1 + {tc_TEC}*(((v(th) - v(tc))/2) - {AMBIENT_TEMP}))}
+R1 tecplus seebeck R = {{Rs} * (1 + {tc_TEC}*(v(tctr) - {AMBIENT_TEMP}))}
 
 * Seebeck effect
 * TECminus is grounded
-B1 seebeck 0 V={alpha}*(v(th)-v(tc))
+B1 seebeck 0 V=({alpha} * (1 + {alpha_c}*(v(tctr) - {AMBIENT_TEMP})))*(v(th)-v(tc))
 
 *** Thermal Circuit ***
 
@@ -53,11 +54,9 @@ R5 tamb tc {R_CONV_TEC}
 
 * Q_pc heat pumping current. Units: ?
 B3 tc tctr I={PELTIER_COEFF}*((v(tecplus)-v(seebeck))/{Rs})
-*** B3 tc tctr I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(tc))
 
 * Q_ph heat pumping current. Units: ?
 B5 tctr th I={PELTIER_COEFF}*((v(tecplus)-v(seebeck))/{Rs})
-*** B5 tctr th I=({alpha}*((v(tecplus)-v(seebeck))/{Rs})*v(th))
 
 * Ohmic heating. Units: ?
 B6 tamb tctr I=((((v(tecplus)-v(seebeck))/{Rs})*((v(tecplus)-v(seebeck))/{Rs}))*({Rs}/2))
@@ -69,10 +68,14 @@ V2 tamb 0 {AMBIENT_TEMP}
 .control
     save v(th)
     save v(tc)
+    save v(tecplus)
+    save v(seebeck)
     *** TODO: Synchronize timesteps with gen_sim waveform
     tran 20 10000
     wrdata output/th_output v(th)
     wrdata output/tc_output v(tc)
+    wrdata output/tecplus_output v(tecplus)
+    wrdata output/seebeck_output v(seebeck)
     exit
 .endc
 

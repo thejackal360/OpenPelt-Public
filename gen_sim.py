@@ -26,7 +26,8 @@ class tec_pms:
                        tc_tec, \
                        delta_t_0, \
                        i_0, \
-                       h_tec):
+                       h_tec, \
+                       alpha_c):
         self.l_tec     = l_tec
         self.k_tec     = k_tec
         self.a_tec     = a_tec
@@ -44,6 +45,7 @@ class tec_pms:
         self.delta_t_0 = delta_t_0
         self.i_0       = i_0
         self.h_tec     = h_tec
+        self.alpha_c   = alpha_c
 
 ### Generate wav file ###
 # data -> a numpy array of data
@@ -74,7 +76,8 @@ def gen_pms(pms_obj):
                              tc_tec    = pms_obj.tc_tec, \
                              delta_t_0 = pms_obj.delta_t_0, \
                              i_0       = pms_obj.i_0, \
-                             h_tec     = pms_obj.h_tec))
+                             h_tec     = pms_obj.h_tec, \
+                             alpha_c   = pms_obj.alpha_c))
 
 ### Call ngspice ###
 def call_ngspice():
@@ -83,21 +86,27 @@ def call_ngspice():
 
 ### Plot values ###
 # TODO: Need real voltages
-def get_values():
-    with open("output/th_output", "r") as th_f:
-        with open("output/tc_output", "r") as tc_f:
-            th_lines = [l.split() for l in th_f.read().split("\n")]
-            th_t = [float(entry[0]) for entry in th_lines if entry != []]
-            th_y = [float(entry[1]) for entry in th_lines if entry != []]
-            tc_lines = [l.split() for l in tc_f.read().split("\n")]
-            tc_t = [float(entry[0]) for entry in tc_lines if entry != []]
-            tc_y = [float(entry[1]) for entry in tc_lines if entry != []]
-            return th_y[len(th_y)-1] - tc_y[len(tc_y)-1]
+def get_values(peltier, Rs):
+    with open("output/tecplus_output") as tecplus_f:
+        with open("output/seebeck_output") as seebeck_f:
+            tecplus_lines = [l.split() for l in tecplus_f.read().split("\n")]
+            tecplus_t = [float(entry[0]) for entry in tecplus_lines if entry != []]
+            tecplus_y = [float(entry[1]) for entry in tecplus_lines if entry != []]
+            seebeck_lines = [l.split() for l in seebeck_f.read().split("\n")]
+            seebeck_t = [float(entry[0]) for entry in seebeck_lines if entry != []]
+            seebeck_y = [float(entry[1]) for entry in seebeck_lines if entry != []]
+            return peltier * (tecplus_y[len(tecplus_y)-1] - seebeck_y[len(seebeck_y)-1])/Rs
+    # with open("output/th_output", "r") as th_f:
+    #     with open("output/tc_output", "r") as tc_f:
+    #         th_lines = [l.split() for l in th_f.read().split("\n")]
+    #         th_t = [float(entry[0]) for entry in th_lines if entry != []]
+    #         th_y = [float(entry[1]) for entry in th_lines if entry != []]
+    #         tc_lines = [l.split() for l in tc_f.read().split("\n")]
+    #         tc_t = [float(entry[0]) for entry in tc_lines if entry != []]
+    #         tc_y = [float(entry[1]) for entry in tc_lines if entry != []]
+    #         return th_y[len(th_y)-1] - tc_y[len(tc_y)-1]
 
-### Clean directory ###
-# TODO
-
-if __name__ == "__main__":
+def get_delta_t(V):
     import math
     # TEC1-12706
     tcp = tec_pms(l_tec = 3.60e-3 / 2.00, ### 3.60e-3, # [m], TEC thickness \
@@ -116,14 +125,29 @@ if __name__ == "__main__":
                   tc_tec = 0.004, # [Ohm/K], temp coefficient of electrical resistivity \
                   delta_t_0 = 30.00, # [K], reference operating point temperature difference \
                   i_0 = 2.50, # [A], reference operating point current \
-                  h_tec = 12.12) # [W/m2*K], convective heat transfer coefficient \
+                  h_tec = 12.12, # [W/m2*K], convective heat transfer coefficient \
+                  alpha_c = 0.15) # [V/K^2], Seebeck temperature coefficient
     t = np.linspace(10.00e-3, 1.00, 1000)
-    y = len(t) * [5.00]
+    y = len(t) * [V]
     # plt.plot(t, y)
     gen_wav(t, y)
     gen_pms(tcp)
     call_ngspice()
-    final_delta_t = get_values()
-    print(final_delta_t)
+    final_qc = get_values((tcp.k_tec * tcp.delta_t_0) / tcp.i_0, tcp.rs)
+    return final_qc
+
+### Clean directory ###
+# TODO
+
+if __name__ == "__main__":
+    _V = []
+    _delta_T = []
+    for V in range(30):
+        _V.append(V)
+        _delta_T.append(get_delta_t(float(V)))
+    plt.xlabel("Voltage [V]")
+    plt.ylabel("Qc [W]")
+    plt.plot(_V, _delta_T)
+    plt.show()
     # plt.plot(t0, y0)
     # plt.show()

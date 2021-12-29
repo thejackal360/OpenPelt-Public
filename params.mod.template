@@ -14,8 +14,9 @@
 * Electrical resistivity temperature coefficient. Units: ?
 .PARAM tc_TEC = {{ tc_tec }}
 * Seebeck coefficient. Units: ?
-* TODO: TEMP DEPENDENT
 .PARAM alpha = {{ alpha }}
+* Seebeck temperature coefficient. Units: ?
+.PARAM alpha_c = {{ alpha_c }}
 
 *** Metal Heating Plate Parameters ***
 * Thickness of metal. Units: ?
