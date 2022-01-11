@@ -6,6 +6,10 @@ from PySpice.Unit import *
 import matplotlib.pyplot as plt
 import os
 
+# TODO: return sensor reading in C
+# TODO: check ngspice version
+# TODO: why is hot side colder than cold side?
+
 ### Detector Circuit Parameters ###
 TAMB         = 296.4
 RP           = 1.8
@@ -20,21 +24,25 @@ C_CONINT     = 304.00
 K_CONINT     = 3.1
 
 class NgspiceCustomSrc(NgSpiceShared):
-    def __init__(self, f_of_t, **kwargs):
+    def __init__(self, f_of_t_and_T, **kwargs):
         super().__init__(**kwargs)
-        self.f_of_t = f_of_t
+        self.f_of_t_and_T = f_of_t_and_T
+        self.last_th = TAMB
+    def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
+        self.last_th = actual_vector_values['V(1)']
+        return 0
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
-        voltage[0] = self.f_of_t(time)
+        voltage[0] = self.f_of_t_and_T(time, self.last_th)
         return 0
     # TODO: Leads to bugs
     def get_isrc_data(self, current, time, node, ngspice_id):
-        current[0] = self.f_of_t(time)
+        current[0] = self.f_of_t_and_T(time, self.last_th)
         return 0
 
 class DetectorCircuit(Circuit):
-    def __init__(self, name, f_of_t, voltage_src = True):
+    def __init__(self, name, f_of_t_and_T, voltage_src = True):
         Circuit.__init__(self, name)
-        self.f_of_t = f_of_t
+        self.f_of_t_and_T = f_of_t_and_T
         ### HEAT SINK
         self.V('1', '3', self.gnd, TAMB@u_V)
         self.R('1', '4', '3', K_RAD@u_Ohm)
@@ -57,7 +65,7 @@ class DetectorCircuit(Circuit):
         self.R('6', '13', '12', RP@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain = SE)
         ### EXTERNAL SOURCE
-        self.ncs = NgspiceCustomSrc(self.f_of_t)
+        self.ncs = NgspiceCustomSrc(self.f_of_t_and_T, send_data = True)
         if voltage_src:
             self.V('3', self.gnd, '11', 'dc 0 external')
         else:
@@ -83,4 +91,4 @@ def test_control_algo(f_of_t, voltage_src = True):
     plt.show()
 
 if __name__ == "__main__":
-    test_control_algo(lambda t : 4.00@u_V)
+    test_control_algo(lambda t, T : 4.00@u_V)
