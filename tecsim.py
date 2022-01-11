@@ -4,6 +4,7 @@ from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 from PySpice.Unit import *
 import matplotlib.pyplot as plt
+import os
 
 ### Detector Circuit Parameters ###
 TAMB         = 296.4
