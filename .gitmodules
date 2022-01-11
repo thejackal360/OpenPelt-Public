@@ -1,3 +1,0 @@
-[submodule "ngspice"]
-	path = ngspice
-	url = git://git.code.sf.net/p/ngspice/ngspice
