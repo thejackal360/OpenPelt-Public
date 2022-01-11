@@ -2,6 +2,7 @@
 
 from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Spice.HighLevelElement import PulseCurrentSource
+from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 from PySpice.Unit import *
 
 import matplotlib.pyplot as plt
@@ -20,6 +21,18 @@ C_C          = 2.00
 C_CONINT     = 304.00
 K_CONINT     = 3.1
 PULSED_VALUE = 2.1
+
+# TODO: Report PySpice bug for isrc external
+class NgspiceCustomIsrc(NgSpiceShared):
+    def __init__(self, f_of_t, **kwargs):
+        super().__init__(**kwargs)
+        self.f_of_t = f_of_t
+    def get_vsrc_data(self, voltage, time, node, ngspice_id):
+        voltage[0] = f_of_t(time)
+        return 0
+    def get_isrc_data(self, current, time, node, ngspice_id):
+        current[0] = f_of_t(time)
+        return 0
 
 cir = Circuit('MyCirc')
 ### HEAT SINK
@@ -46,10 +59,16 @@ cir.V('2', '11', '13', 0.00@u_V)
 cir.R('6', '13', '12', RP@u_Ohm)
 cir.VCVS('1', '12', cir.gnd, '1', '2', voltage_gain = SE)
 ### EXTERNAL CURRENT SOURCE
-PulseCurrentSource(cir, '1', cir.gnd, '11', pulsed_value = 2.1@u_A, pulse_width = 1e6@u_s, period = 1e7@u_s, initial_value = 0.00@u_A)
-simulator = cir.simulator()
+f_of_t = lambda t : 4.00@u_V # 2.1@u_A
+nci = NgspiceCustomIsrc(f_of_t)
+# PulseCurrentSource(cir, '1', cir.gnd, '11', pulsed_value = 2.1@u_A, pulse_width = 1e6@u_s, period = 1e7@u_s, initial_value = 0.00@u_A)
+# cir.I('1', cir.gnd, '11', 'dc 0 external')
+cir.V('5', cir.gnd, '11', 'dc 0 external')
+simulator = cir.simulator(simulator = 'ngspice-shared', ngspice_shared = nci)
 simulator.options(reltol = 5e-6)
-analysis = simulator.transient(step_time = 1.00@u_s, end_time = 1800.00@u_s, use_initial_condition = True)
+analysis = simulator.transient(step_time = 1.00@u_s, \
+                               end_time = 900.00@u_s, # 1800.00@u_s, \
+                               use_initial_condition = True)
 figure, ax = plt.subplots(figsize=(20, 10))
 ax.plot(analysis['1'], label = 'Th Sim Result')
 ax.plot(analysis['2'], label = 'Tc Sim Result')
