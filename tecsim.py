@@ -6,9 +6,10 @@ from PySpice.Unit import *
 import matplotlib.pyplot as plt
 import os
 
-# TODO: return sensor reading in C
 # TODO: check ngspice version
 # TODO: why is hot side colder than cold side?
+
+K_to_C = lambda T_in_C : T_in_C - 273.15
 
 ### Detector Circuit Parameters ###
 TAMB         = 296.4
@@ -27,9 +28,9 @@ class NgspiceCustomSrc(NgSpiceShared):
     def __init__(self, f_of_t_and_T, **kwargs):
         super().__init__(**kwargs)
         self.f_of_t_and_T = f_of_t_and_T
-        self.last_th = TAMB
+        self.last_th = K_to_C(TAMB)
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
-        self.last_th = actual_vector_values['V(1)']
+        self.last_th = K_to_C(actual_vector_values['V(1)'])
         return 0
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         voltage[0] = self.f_of_t_and_T(time, self.last_th)
