@@ -6,8 +6,6 @@ from PySpice.Unit import *
 import matplotlib.pyplot as plt
 import os
 
-# TODO: why is hot side colder than cold side?
-
 K_to_C = lambda T_in_C : T_in_C - 273.15
 
 ### Detector Circuit Parameters ###
@@ -34,7 +32,6 @@ class NgspiceCustomSrc(NgSpiceShared):
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         voltage[0] = self.f_of_t_and_T(time, self.last_th)
         return 0
-    # TODO: Leads to bugs
     def get_isrc_data(self, current, time, node, ngspice_id):
         current[0] = self.f_of_t_and_T(time, self.last_th)
         return 0
@@ -67,7 +64,7 @@ class DetectorCircuit(Circuit):
         ### EXTERNAL SOURCE
         self.ncs = NgspiceCustomSrc(self.f_of_t_and_T, send_data = True)
         if voltage_src:
-            self.V('3', self.gnd, '11', 'dc 0 external')
+            self.V('3', '11', self.gnd, 'dc 0 external')
         else:
             self.I('3', self.gnd, '11', 'dc 0 external')
     def _simulator(self):
@@ -78,7 +75,7 @@ def test_control_algo(f_of_t, voltage_src = True):
     det = DetectorCircuit('detector_circuit', f_of_t, voltage_src = voltage_src)
     sim = det._simulator()
     sim.options(reltol = 5e-6)
-    analysis = sim.transient(step_time = 1.00@u_s, \
+    analysis = sim.transient(step_time = 0.50@u_s, \
                              end_time = 1800.00@u_s, \
                              use_initial_condition = True)
     figure, ax = plt.subplots(figsize=(20, 10))
