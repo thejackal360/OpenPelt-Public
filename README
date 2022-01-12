@@ -1,1 +1,4 @@
-Run ./run_tecsim
+Run ./run_tecsim.
+
+Uses libngspice.so for version 34.
+https://sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/

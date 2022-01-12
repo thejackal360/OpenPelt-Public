@@ -6,7 +6,6 @@ from PySpice.Unit import *
 import matplotlib.pyplot as plt
 import os
 
-# TODO: check ngspice version
 # TODO: why is hot side colder than cold side?
 
 K_to_C = lambda T_in_C : T_in_C - 273.15
@@ -93,3 +92,5 @@ def test_control_algo(f_of_t, voltage_src = True):
 
 if __name__ == "__main__":
     test_control_algo(lambda t, T : 4.00@u_V)
+    # TODO: Need to fix PySpice external current source bug
+    # test_control_algo(lambda t, T : 2.1@u_A, voltage_src = False)
