@@ -3,8 +3,17 @@
 from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Spice.NgSpice.Shared import NgSpiceShared
 from PySpice.Unit import *
+import math
 import matplotlib.pyplot as plt
+import numpy
 import os
+
+TEMP_SENSOR_SAMPLES_PER_SEC = 5.00
+SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
+SIMULATION_TIME_IN_SEC = 1800.00
+
+COLD_SIDE_NODE = 5 # 2
+HOT_SIDE_NODE  = 4 # 1
 
 K_to_C = lambda T_in_C : T_in_C - 273.15
 
@@ -22,24 +31,61 @@ C_CONINT     = 304.00
 K_CONINT     = 3.1
 
 class NgspiceCustomSrc(NgSpiceShared):
-    def __init__(self, f_of_t_and_T, **kwargs):
+    def __init__(self, controller_f, **kwargs):
         super().__init__(**kwargs)
-        self.f_of_t_and_T = f_of_t_and_T
-        self.last_th = K_to_C(TAMB)
+        self.controller_f = controller_f
+        self.t         = []
+        self.th_actual = []
+        self.tc_actual = []
+        self.th_sensor = []
+        self.tc_sensor = []
+        self.v = []
+        self.i = []
+        self.timestep_counter = SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE
+        self.next_v = 0.00
+        self.next_i = 0.00
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
-        self.last_th = K_to_C(actual_vector_values['V(1)'])
+        if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
+            self.th_sensor.append(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real))
+            self.tc_sensor.append(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real))
+            self.timestep_counter = 0
+        else:
+            self.th_sensor.append(self.th_sensor[len(self.th_sensor) - 1])
+            self.tc_sensor.append(self.tc_sensor[len(self.tc_sensor) - 1])
+            self.timestep_counter += 1
+        self.th_actual.append(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real))
+        self.tc_actual.append(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real))
+        self.v.append(actual_vector_values['V(11)'].real)
+        self.i.append((actual_vector_values['V(13)'].real - actual_vector_values['V(12)'].real)/RP)
+        self.next_v = self.controller_f(actual_vector_values['time'].real, self.th_sensor, self.tc_sensor)
+        self.next_i = self.controller_f(actual_vector_values['time'].real, self.th_sensor, self.tc_sensor)
+        self.t.append(actual_vector_values['time'].real)
         return 0
+    def get_t(self):
+        return self.t
+    def get_th_actual(self):
+        return self.th_actual
+    def get_tc_actual(self):
+        return self.tc_actual
+    def get_th_sensor(self):
+        return self.th_sensor
+    def get_tc_sensor(self):
+        return self.tc_sensor
+    def get_v_arr(self):
+        return self.v
+    def get_i_arr(self):
+        return self.i
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
-        voltage[0] = self.f_of_t_and_T(time, self.last_th)
+        voltage[0] = self.next_v
         return 0
     def get_isrc_data(self, current, time, node, ngspice_id):
-        current[0] = self.f_of_t_and_T(time, self.last_th)
+        current[0] = self.next_i
         return 0
 
 class DetectorCircuit(Circuit):
-    def __init__(self, name, f_of_t_and_T, voltage_src = True):
+    def __init__(self, name, controller_f, voltage_src = True):
         Circuit.__init__(self, name)
-        self.f_of_t_and_T = f_of_t_and_T
+        self.controller_f = controller_f
         ### HEAT SINK
         self.V('1', '3', self.gnd, TAMB@u_V)
         self.R('1', '4', '3', K_RAD@u_Ohm)
@@ -62,32 +108,64 @@ class DetectorCircuit(Circuit):
         self.R('6', '13', '12', RP@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain = SE)
         ### EXTERNAL SOURCE
-        self.ncs = NgspiceCustomSrc(self.f_of_t_and_T, send_data = True)
+        self.ncs = NgspiceCustomSrc(self.controller_f, send_data = True)
         if voltage_src:
             self.V('3', '11', self.gnd, 'dc 0 external')
         else:
             self.I('3', self.gnd, '11', 'dc 0 external')
+    def get_t(self):
+        return self.ncs.get_t()
+    def get_th_actual(self):
+        return self.ncs.get_th_actual()
+    def get_tc_actual(self):
+        return self.ncs.get_tc_actual()
+    def get_th_sensor(self):
+        return self.ncs.get_th_sensor()
+    def get_tc_sensor(self):
+        return self.ncs.get_tc_sensor()
+    def get_v_arr(self):
+        return self.ncs.get_v_arr()
+    def get_i_arr(self):
+        return self.ncs.get_i_arr()
     def _simulator(self):
         return self.simulator(simulator = 'ngspice-shared', \
                               ngspice_shared = self.ncs)
 
-def test_control_algo(f_of_t, voltage_src = True):
-    det = DetectorCircuit('detector_circuit', f_of_t, voltage_src = voltage_src)
+def test_control_algo(controller_f, voltage_src = True):
+    det = DetectorCircuit('detector_circuit', controller_f, voltage_src = voltage_src)
     sim = det._simulator()
     sim.options(reltol = 5e-6)
-    analysis = sim.transient(step_time = 0.50@u_s, \
-                             end_time = 1800.00@u_s, \
+    analysis = sim.transient(step_time = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC*SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s, \
+                             end_time = SIMULATION_TIME_IN_SEC@u_s, \
                              use_initial_condition = True)
-    figure, ax = plt.subplots(figsize=(20, 10))
-    ax.plot(analysis['1'], label = 'Hot Side TEC Temperature')
-    ax.plot(analysis['2'], label = 'Cold Side TEC Temperature')
-    ax.set_xlabel('Time [sec]')
-    ax.set_ylabel('Temperature [K]')
-    ax.legend()
-    ax.set_title('TEC Temperature Transient Characteristic')
+    # "Good artists copy. Great artists steal."
+    # https://www.kite.com/python/answers/how-to-plot-two-series-with-different-scales-in-python
+    figure, ax_left = plt.subplots(figsize=(20, 10))
+    ax_right = ax_left.twinx()
+    th_leg = ax_left.plot(det.get_t(), \
+                          det.get_th_actual(), \
+                          label = 'Hot Side TEC Heat Sink Temp', \
+                          color = 'red')
+    tc_leg = ax_left.plot(det.get_t(), \
+                          det.get_tc_actual(), \
+                          label = 'Cold Side TEC Heat Sink Temp', \
+                          color = 'blue')
+    ax_left.set_xlabel('Time [sec]')
+    ax_left.set_ylabel('Temperature [C]')
+    v_leg  = ax_right.plot(det.get_t(), \
+                           det.get_v_arr(), \
+                           label = 'Applied Voltage', \
+                           color = 'green')
+    ax_right.set_ylabel('Voltage [V]')
+    ax_left.set_title('TEC Temperature Transient Characteristic')
+    legs = th_leg + tc_leg + v_leg
+    labels = [l.get_label() for l in legs]
+    ax_left.legend(legs, labels, loc = 0)
     plt.show()
 
 if __name__ == "__main__":
-    test_control_algo(lambda t, T : 4.00@u_V)
+    target_temp_in_C = -20.00
+    p_controller = lambda t, Th_arr, Tc_arr : min(12.00, 0.35 * (Tc_arr[len(Tc_arr) - 1] - target_temp_in_C)) @u_V
+    test_control_algo(p_controller)
     # TODO: Need to fix PySpice external current source bug
     # test_control_algo(lambda t, T : 2.1@u_A, voltage_src = False)
