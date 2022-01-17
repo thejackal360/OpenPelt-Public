@@ -140,27 +140,53 @@ def test_control_algo(controller_f, voltage_src = True):
                              use_initial_condition = True)
     # "Good artists copy. Great artists steal."
     # https://www.kite.com/python/answers/how-to-plot-two-series-with-different-scales-in-python
-    figure, ax_left = plt.subplots(figsize=(20, 10))
-    ax_right = ax_left.twinx()
-    th_leg = ax_left.plot(det.get_t(), \
-                          det.get_th_actual(), \
-                          label = 'Hot Side TEC Heat Sink Temp', \
-                          color = 'red')
-    tc_leg = ax_left.plot(det.get_t(), \
-                          det.get_tc_actual(), \
-                          label = 'Cold Side TEC Heat Sink Temp', \
-                          color = 'blue')
-    ax_left.set_xlabel('Time [sec]')
-    ax_left.set_ylabel('Temperature [C]')
-    v_leg  = ax_right.plot(det.get_t(), \
-                           det.get_v_arr(), \
-                           label = 'Applied Voltage', \
-                           color = 'green')
-    ax_right.set_ylabel('Voltage [V]')
-    ax_left.set_title('TEC Temperature Transient Characteristic')
-    legs = th_leg + tc_leg + v_leg
-    labels = [l.get_label() for l in legs]
-    ax_left.legend(legs, labels, loc = 0)
+    figure, axes = plt.subplots(2, figsize=(20, 10))
+    # Constant current - Start
+    ax_left_0 = axes[0]
+    ax_right_0 = ax_left_0.twinx()
+    th_leg_0 = ax_left_0.plot(det.get_t(), \
+                              det.get_th_actual(), \
+                              label = 'Hot Side TEC Heat Sink Temp', \
+                              color = 'red')
+    tc_leg_0 = ax_left_0.plot(det.get_t(), \
+                              det.get_tc_actual(), \
+                              label = 'Cold Side TEC Heat Sink Temp', \
+                              color = 'blue')
+    ax_left_0.set_xlabel('Time [sec]')
+    ax_left_0.set_ylabel('Temperature [C]')
+    v_leg_0  = ax_right_0.plot(det.get_t(), \
+                               det.get_v_arr(), \
+                               label = 'Applied Voltage', \
+                               color = 'green')
+    ax_right_0.set_ylabel('Voltage [V]')
+    ax_left_0.set_title('Constant Current Transient Characteristic')
+    legs_0 = th_leg_0 + tc_leg_0 + v_leg_0
+    labels_0 = [l.get_label() for l in legs_0]
+    ax_left_0.legend(legs_0, labels_0, loc = 0)
+    # Constant current - End
+    # p controller - Start
+    ax_left_1 = axes[1]
+    ax_right_1 = ax_left_1.twinx()
+    th_leg_1 = ax_left_1.plot(det.get_t(), \
+                              det.get_th_actual(), \
+                              label = 'Hot Side TEC Heat Sink Temp', \
+                              color = 'red')
+    tc_leg_1 = ax_left_1.plot(det.get_t(), \
+                              det.get_tc_actual(), \
+                              label = 'Cold Side TEC Heat Sink Temp', \
+                              color = 'blue')
+    ax_left_1.set_xlabel('Time [sec]')
+    ax_left_1.set_ylabel('Temperature [C]')
+    v_leg_1 = ax_right_1.plot(det.get_t(), \
+                              det.get_v_arr(), \
+                              label = 'Applied Voltage', \
+                              color = 'green')
+    ax_right_1.set_ylabel('Voltage [V]')
+    ax_left_1.set_title('p Controller Transient Characteristic')
+    legs_1 = th_leg_1 + tc_leg_1 + v_leg_1
+    labels_1 = [l.get_label() for l in legs_1]
+    ax_left_1.legend(legs_1, labels_1, loc = 0)
+    # p controller - End
     plt.show()
 
 if __name__ == "__main__":
