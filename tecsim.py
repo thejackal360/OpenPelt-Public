@@ -152,7 +152,6 @@ def test_control_algo(controller_f, voltage_src = True):
                               det.get_tc_actual(), \
                               label = 'Cold Side TEC Heat Sink Temp', \
                               color = 'blue')
-    ax_left_0.set_xlabel('Time [sec]')
     ax_left_0.set_ylabel('Temperature [C]')
     v_leg_0  = ax_right_0.plot(det.get_t(), \
                                det.get_v_arr(), \
