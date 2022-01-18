@@ -5,7 +5,8 @@ import cffi
 from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Unit import *
 import math
-import matplotlib.pyplot as plt
+import toyplot
+import toyplot.browser
 import numpy
 import os
 
@@ -153,10 +154,13 @@ class DetectorCircuit(Circuit):
                               ngspice_shared = self.ncs)
 
 def test_control_algo(controller_f, voltage_src = True):
-    # "Good artists copy. Great artists steal."
-    # https://www.kite.com/python/answers/how-to-plot-two-series-with-different-scales-in-python
-    figure, axes = plt.subplots(2, figsize=(20, 10))
     # Constant current - Start
+    cc_canvas = toyplot.Canvas(width = 600, height = 600)
+    cc_axes = cc_canvas.cartesian(ymin = 0.00, \
+                                  ymax = 35.00, \
+                                  label = 'Constant Current Transient Characteristic', \
+                                  xlabel = 'Time [s]', \
+                                  ylabel = 'Temperature [C]')
     constant_current = lambda t, Th_arr, Tc_arr : 2.1@u_A if t > 0.00 else 0.0@u_A
     det_cnst_current = DetectorCircuit('det_cnst_current_circuit', \
                                        constant_current, \
@@ -167,30 +171,32 @@ def test_control_algo(controller_f, voltage_src = True):
             step_time = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC*SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s, \
             end_time = SIMULATION_TIME_IN_SEC@u_s, \
             use_initial_condition = True)
-    ax_left_0 = axes[0]
-    ax_right_0 = ax_left_0.twinx()
-    th_leg_0 = ax_left_0.plot(det_cnst_current.get_t(), \
-                              det_cnst_current.get_th_actual(), \
-                              label = 'Hot Side TEC Heat Sink Temp', \
-                              color = 'red')
-    tc_leg_0 = ax_left_0.plot(det_cnst_current.get_t(), \
-                              det_cnst_current.get_tc_actual(), \
-                              label = 'Cold Side TEC Heat Sink Temp', \
-                              color = 'blue')
-    ax_left_0.set_ylabel('Temperature [C]')
-    v_leg_0  = ax_right_0.plot(det_cnst_current.get_t(), \
-                               det_cnst_current.get_i_arr(), \
-                               label = 'Applied Current', \
-                               color = 'green')
-    ax_right_0.set_ylabel('Current [A]')
-    ax_left_0.set_title('Constant Current Transient Characteristic')
-    legs_0 = th_leg_0 + tc_leg_0 + v_leg_0
-    labels_0 = [l.get_label() for l in legs_0]
-    ax_left_0.legend(legs_0, labels_0, loc = 0)
+    th_leg_0 = cc_axes.plot(det_cnst_current.get_t(), \
+                            det_cnst_current.get_th_actual(), \
+                            style = {"stroke" : "red"})
+    tc_leg_0 = cc_axes.plot(det_cnst_current.get_t(), \
+                            det_cnst_current.get_tc_actual(), \
+                            style = {"stroke" : "blue"})
+    cc_axes = cc_axes.share('x', xlabel = 'Time [s]', \
+                                 ylabel = 'Current [A]', \
+                                 ymax = 2.7)
+    curr_leg = cc_axes.plot(det_cnst_current.get_t(), \
+                            det_cnst_current.get_i_arr(), \
+                            style = {"stroke" : "green"})
+    cc_canvas.legend([('Hot Side TEC Heat Sink Temp', th_leg_0), \
+                      ('Cold Side TEC Heat Sink Temp', tc_leg_0), \
+                      ('Driving Current', curr_leg)], \
+                      corner = ("bottom-right", 200, 350, 50))
     # Constant current - End
     # p controller - Start
     # TODO - detector circuit needs to be instantiated later since it uses
     # the same instance of the ngspice shared library. Fix PySpice issue.
+    p_canvas = toyplot.Canvas(width = 600, height = 600)
+    p_axes = p_canvas.cartesian(ymin = -10.00, \
+                                ymax = 50.00, \
+                                label = 'p Controller Transient Characteristic', \
+                                xlabel = 'Time [s]', \
+                                ylabel = 'Temperature [C]')
     det_p_ctrl = DetectorCircuit('det_p_ctrl_circuit', \
                                  controller_f, \
                                  voltage_src = voltage_src)
@@ -200,29 +206,26 @@ def test_control_algo(controller_f, voltage_src = True):
             step_time = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC*SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s, \
             end_time = SIMULATION_TIME_IN_SEC@u_s, \
             use_initial_condition = True)
-    ax_left_1 = axes[1]
-    ax_right_1 = ax_left_1.twinx()
-    th_leg_1 = ax_left_1.plot(det_p_ctrl.get_t(), \
-                              det_p_ctrl.get_th_actual(), \
-                              label = 'Hot Side TEC Heat Sink Temp', \
-                              color = 'red')
-    tc_leg_1 = ax_left_1.plot(det_p_ctrl.get_t(), \
-                              det_p_ctrl.get_tc_actual(), \
-                              label = 'Cold Side TEC Heat Sink Temp', \
-                              color = 'blue')
-    ax_left_1.set_xlabel('Time [sec]')
-    ax_left_1.set_ylabel('Temperature [C]')
-    v_leg_1 = ax_right_1.plot(det_p_ctrl.get_t(), \
-                              det_p_ctrl.get_v_arr(), \
-                              label = 'Applied Voltage', \
-                              color = 'green')
-    ax_right_1.set_ylabel('Voltage [V]')
-    ax_left_1.set_title('p Controller Transient Characteristic')
-    legs_1 = th_leg_1 + tc_leg_1 + v_leg_1
-    labels_1 = [l.get_label() for l in legs_1]
-    ax_left_1.legend(legs_1, labels_1, loc = 0)
+    th_leg_1 = p_axes.plot(det_p_ctrl.get_t(), \
+                           det_p_ctrl.get_th_actual(), \
+                           style = {"stroke" : "red"})
+    tc_leg_1 = p_axes.plot(det_p_ctrl.get_t(), \
+                           det_p_ctrl.get_tc_actual(), \
+                           style = {"stroke" : "blue"})
+    p_axes = p_axes.share('x', xlabel = 'Time [s]', \
+                               ylabel = 'Voltage [V]', \
+                               ymax = 12.00)
+    v_leg = p_axes.plot(det_p_ctrl.get_t(), \
+                        det_p_ctrl.get_v_arr(), \
+                        style = {"stroke" : "green"})
+    p_canvas.legend([('Hot Side TEC Heat Sink Temp', th_leg_1), \
+                     ('Cold Side TEC Heat Sink Temp', tc_leg_1), \
+                     ('Applied Voltage', v_leg)], \
+                     corner = ("bottom-right", 200, 350, 50))
     # p controller - End
-    plt.show()
+    print("Generating plots...")
+    toyplot.browser.show(cc_canvas)
+    toyplot.browser.show(p_canvas)
 
 if __name__ == "__main__":
     target_temp_in_C = -20.00
