@@ -1,4 +1,11 @@
 Run ./run_tecsim.
 
 Uses libngspice.so for version 34.
-https://sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/
+https: // sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/
+
+Neural controller class uses the MLP class (Pytorch class). The neural
+controller class provides a method called ** learn ** which allows for learning
+the weights of an MLP via Backpropagation. THe learning process uses the
+Adam optimizer and the MSE as loss function. The MLP is a one hidden layer
+feed-forward neural network. The number of hidden units is a parameter of the
+model as well as the bias and the learning rate.
