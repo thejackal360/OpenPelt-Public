@@ -3,21 +3,25 @@
 import PySpice.Spice.NgSpice.Shared
 import cffi
 from PySpice.Spice.Netlist import Circuit, SubCircuit
-from PySpice.Unit import *
+from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import matplotlib.pylab as plt
 
 from neural_controller import neural_controller
 
+from initialize_randomness import seed_everything
+
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 5.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 1800.00
+# SIMULATION_TIME_IN_SEC = 1800.00
+SIMULATION_TIME_IN_SEC = 1500.00
 
 COLD_SIDE_NODE = 5  # 2
 HOT_SIDE_NODE = 4  # 1
 
 
-def K_to_C(T_in_C): return T_in_C - 273.15
+def K_to_C(T_in_C):
+    return T_in_C - 273.15
 
 
 # Detector Circuit Parameters #
@@ -264,11 +268,17 @@ def test_control_algo(controller_f, voltage_src=True):
 
 
 if __name__ == "__main__":
-    target_temp_in_C = -20.00
-    nc = neural_controller(T_ref=target_temp_in_C)
+    seed_everything(7777)
+    target_temp_in_C = -5.00
+    nc = neural_controller(T_ref=target_temp_in_C,
+                           hidden_units=3,
+                           bias=False,
+                           lrate=1e-4)
 
-    def p_controller(t, Th_arr, Tc_arr): return min(
-        12.00, 3.5 * (Tc_arr[len(Tc_arr) - 1] - target_temp_in_C)) @ u_V
+    def p_controller(t, Th_arr, Tc_arr):
+        print((Tc_arr[-1] - target_temp_in_C) @ u_V)
+        return min(12.00,
+                   0.5 * (Tc_arr[len(Tc_arr) - 1] - target_temp_in_C)) @ u_V
     test_control_algo(nc.learn)
     # TODO: Need to fix PySpice external current source bug
     # test_control_algo(lambda t, T : 2.1@u_A, voltage_src = False)
