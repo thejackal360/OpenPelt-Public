@@ -271,9 +271,9 @@ if __name__ == "__main__":
     seed_everything(7777)
     target_temp_in_C = -5.00
     nc = neural_controller(T_ref=target_temp_in_C,
-                           hidden_units=3,
+                           hidden_units=5,
                            bias=False,
-                           lrate=1e-4)
+                           lrate=1e-3)
 
     def p_controller(t, Th_arr, Tc_arr):
         print((Tc_arr[-1] - target_temp_in_C) @ u_V)
