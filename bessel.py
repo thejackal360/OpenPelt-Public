@@ -279,8 +279,8 @@ if __name__ == "__main__":
 
     plot_not_save = False
 
-    fig11_repro = False
-    char_i_repro = False
+    fig11_repro = True
+    char_i_repro = True
     char_v_repro = True
     
     if fig11_repro:
@@ -303,7 +303,7 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.CURRENT)
         else:
             numpy.savez("ICharacteristicTh", x = pC.get_i_arr(), y = pC.get_th_actual())
-            numpy.savez("ICharacteristicTh", x = pC.get_i_arr(), y = pC.get_tc_actual())
+            numpy.savez("ICharacteristicTc", x = pC.get_i_arr(), y = pC.get_tc_actual())
         plt.show()
 
     if char_v_repro:
@@ -313,5 +313,5 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.VOLTAGE)
         else:
             numpy.savez("VCharacteristicTh", x = pC.get_v_arr(), y = pC.get_th_actual())
-            numpy.savez("VCharacteristicTh", x = pC.get_v_arr(), y = pC.get_tc_actual())
+            numpy.savez("VCharacteristicTc", x = pC.get_v_arr(), y = pC.get_tc_actual())
         plt.show()
