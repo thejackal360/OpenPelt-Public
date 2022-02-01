@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
+import numpy
 
 ### Constants ###
 
@@ -276,6 +277,8 @@ def fig11_repro_test(t, Th_arr, Tc_arr):
 
 if __name__ == "__main__":
 
+    plot_not_save = False
+
     fig11_repro = False
     char_i_repro = False
     char_v_repro = True
@@ -283,7 +286,11 @@ if __name__ == "__main__":
     if fig11_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.run_sim()
-        pC.plot_th_tc(IndVar.TIME)
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.TIME)
+        else:
+            numpy.savez("Fig11ReproductionTh", x = pC.get_t(), y = pC.get_th_sensor())
+            numpy.savez("Fig11ReproductionTc", x = pC.get_t(), y = pC.get_tc_sensor())
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
@@ -292,11 +299,19 @@ if __name__ == "__main__":
     if char_i_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.characterize_plant(-2.00@u_A, 10.00@u_A, 0.01@u_A)
-        pC.plot_th_tc(IndVar.CURRENT)
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.CURRENT)
+        else:
+            numpy.savez("ICharacteristicTh", x = pC.get_i_arr(), y = pC.get_th_actual())
+            numpy.savez("ICharacteristicTh", x = pC.get_i_arr(), y = pC.get_tc_actual())
         plt.show()
 
     if char_v_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.VOLTAGE)
         pC.characterize_plant(-6.00@u_V, 20.00@u_V, 0.01@u_V)
-        pC.plot_th_tc(IndVar.VOLTAGE)
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.VOLTAGE)
+        else:
+            numpy.savez("VCharacteristicTh", x = pC.get_v_arr(), y = pC.get_th_actual())
+            numpy.savez("VCharacteristicTh", x = pC.get_v_arr(), y = pC.get_tc_actual())
         plt.show()
