@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
     if char_i_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
-        pC.characterize_plant(-2.00@u_A, 10.00@u_A, 0.01@u_A)
+        pC.characterize_plant(-6.00@u_A, 6.00@u_A, 0.01@u_A)
         if plot_not_save:
             pC.plot_th_tc(IndVar.CURRENT)
         else:
@@ -308,7 +308,7 @@ if __name__ == "__main__":
 
     if char_v_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.VOLTAGE)
-        pC.characterize_plant(-6.00@u_V, 20.00@u_V, 0.01@u_V)
+        pC.characterize_plant(-6.00@u_V, 16.4@u_V, 0.01@u_V)
         if plot_not_save:
             pC.plot_th_tc(IndVar.VOLTAGE)
         else:
