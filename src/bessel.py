@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     def amp_input(t, Th_arr, Tc_arr):
         return amp_ref @ u_A
-    
+
     if fig11_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.run_sim()
