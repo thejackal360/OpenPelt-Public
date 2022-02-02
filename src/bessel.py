@@ -2,6 +2,7 @@
 
 # Imports
 
+import os
 import numpy as np
 
 import cffi
@@ -309,6 +310,7 @@ if __name__ == "__main__":
     fig11_repro = True
     char_i_repro = True
     char_v_repro = True
+    volt_ref_repro = True
 
     # Initialization
 
@@ -330,41 +332,59 @@ if __name__ == "__main__":
     def amp_input(t, Th_arr, Tc_arr):
         return amp_ref @ u_A
 
+    os.system("mkdir ./results")
+
     if fig11_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.run_sim()
         if plot_not_save:
             pC.plot_th_tc(IndVar.TIME)
+            plt.show()
         else:
-            np.savez("./results/Fig11ReproductionTh",
-                     x=pC.get_t(), y=pC.get_th_sensor())
+            np.savez("./results/Fig11ReproductionTh", 
+                     x = pC.get_t(), y = pC.get_th_sensor())
             np.savez("./results/Fig11ReproductionTc",
-                     x=pC.get_t(), y=pC.get_tc_sensor())
+                     x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/Fig11ReproductionI",
+                     x = pC.get_t(), y = pC.get_i_arr())
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
-        plt.show()
 
     if char_i_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.characterize_plant(-6.00@u_A, 6.00@u_A, 0.01@u_A)
         if plot_not_save:
             pC.plot_th_tc(IndVar.CURRENT)
+            plt.show()
         else:
             np.savez("./results/ICharacteristicTh", x=pC.get_i_arr(),
                      y=pC.get_th_actual())
             np.savez("./results/ICharacteristicTc", x=pC.get_i_arr(),
                      y=pC.get_tc_actual())
-        plt.show()
 
     if char_v_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.VOLTAGE)
         pC.characterize_plant(-6.00@u_V, 16.4@u_V, 0.01@u_V)
         if plot_not_save:
             pC.plot_th_tc(IndVar.VOLTAGE)
+            plt.show()
         else:
             np.savez("./results/VCharacteristicTh", x=pC.get_v_arr(),
                      y=pC.get_th_actual())
             np.savez("./results/VCharacteristicTc", x=pC.get_v_arr(),
                      y=pC.get_tc_actual())
-        plt.show()
+
+    if volt_ref_repro:
+        pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
+        pC.run_sim()
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.TIME)
+            plt.show()
+        else:
+            np.savez("./results/Fig11ReproductionTh", x = pC.get_t(), y = pC.get_th_sensor())
+            np.savez("./results/Fig11ReproductionTc", x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/Fig11ReproductionV",  x = pC.get_t(), y = pC.get_v_arr())
+        if not pC.is_steady_state():
+            print("Need sim to run for longer!")
+            assert pC.is_steady_state()
