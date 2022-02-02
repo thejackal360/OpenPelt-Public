@@ -101,38 +101,44 @@ class PlantCircuit(Circuit):
             ivar_vals = self.ncs.get_t()
         th_leg_0, = ax.plot(ivar_vals, \
                             self.ncs.get_th_actual(), \
+                            '-xk', lw = 1.5, \
                             label = "Hot Side Temp [C]", c = "r")
         tc_leg_0, = ax.plot(ivar_vals, \
                             self.ncs.get_tc_actual(), \
+                            '-.xb', lw = 1.5, \
                             label = "Cold Side Temp [C]", c = "b")
         if ivar == IndVar.VOLTAGE:
-            ax.set_xlabel("Voltage [V]")
+            ax.set_xlabel("Voltage [V]", fontsize = 18, weight = 'bold', color = 'black')
         elif ivar == IndVar.CURRENT:
-            ax.set_xlabel("Current [A]")
+            ax.set_xlabel("Current [A]", fontsize = 18, weight = 'bold', color = 'black')
         else:
-            ax.set_xlabel("Time [s]")
-        ax.set_ylabel("Temperature [C]")
+            ax.set_xlabel("Time [s]", fontsize = 18, weight = 'bold', color = 'black')
+        ax.set_ylabel("Temperature [C]", fontsize = 18, weight = 'bold', color = 'black')
+        ax.grid()
 
         if ivar == IndVar.TIME:
             ax1 = ax.twinx()
             if self.sig_type == Signal.VOLTAGE:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
                                     self.ncs.get_v_arr(),
-                                    c='g',
+                                    '--', lw = 1.5, c='g',
                                     label="Driving Voltage")
-                ax1.set_ylabel("Voltage [V]")
-                ax1.yaxis.label.set_color(sig_leg.get_color())
-                ax1.spines["right"].set_edgecolor(sig_leg.get_color())
-                ax1.tick_params(axis='y', colors=sig_leg.get_color())
+                ax1.set_ylabel("Voltage [V]", fontsize = 18, weight = 'bold', color = 'black')
+                ax1.yaxis.label.set_color('black')
+                ax1.spines["right"].set_edgecolor('black')
+                ax1.tick_params(axis='y', colors='black')
             else:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
                                     self.ncs.get_i_arr(),
-                                    c='g',
+                                    '--', lw = 1.5, c='g',
                                     label="Driving Current")
-                ax1.set_ylabel("Current [A]")
-                ax1.yaxis.label.set_color(sig_leg.get_color())
-                ax1.spines["right"].set_edgecolor(sig_leg.get_color())
-                ax1.tick_params(axis='y', colors=sig_leg.get_color())
+                ax1.set_ylabel("Current [A]", fontsize = 18, weight = 'bold', color = 'black')
+                ax1.yaxis.label.set_color('black')
+                ax1.spines["right"].set_edgecolor('black')
+                ax1.tick_params(axis='y', colors='black')
+
+        ax.legend(fontsize = 16)
+        ax1.legend(fontsize = 16)
 
     def get_t(self):
         return self.ncs.get_t()
