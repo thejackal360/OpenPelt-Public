@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 
-### Imports ###
+# Imports
+
+import numpy as np
 
 import cffi
 from enum import Enum
 import matplotlib.pyplot as plt
-from PySpice.Spice.Netlist import Circuit, SubCircuit
+from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
-import numpy
-from initialize_randomness import *
-from neural_controller import *
 
-### Simulation Parameters ###
+from neural_controller import neural_controller
+from initialize_randomness import seed_everything
+
+# Simulation Parameters
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 5.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
@@ -24,7 +26,7 @@ HOT_SIDE_NODE = 4
 
 INPUT_SRC = 'input_src'
 
-### Detector Circuit Parameters ###
+# Detector Circuit Parameters
 
 TAMB = 296.4
 RP = 1.8
@@ -38,21 +40,25 @@ C_C = 2.00
 C_CONINT = 304.00
 K_CONINT = 3.1
 
-### Auxiliary Functions ###
+# Auxiliary Functions
+
 
 def K_to_C(T_in_C):
     return T_in_C - 273.15
 
-### Classes ###
+# Classes
+
 
 class Signal(Enum):
     VOLTAGE = 1
     CURRENT = 2
 
+
 class IndVar(Enum):
     VOLTAGE = 1
     CURRENT = 2
-    TIME    = 3
+    TIME = 3
+
 
 class PlantCircuit(Circuit):
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
@@ -99,21 +105,25 @@ class PlantCircuit(Circuit):
             ivar_vals = self.ncs.get_i_arr()
         else:
             ivar_vals = self.ncs.get_t()
-        th_leg_0, = ax.plot(ivar_vals, \
-                            self.ncs.get_th_actual(), \
-                            '-xk', lw = 1.5, \
-                            label = "Hot Side Temp [C]", c = "r")
-        tc_leg_0, = ax.plot(ivar_vals, \
-                            self.ncs.get_tc_actual(), \
-                            '-.xb', lw = 1.5, \
-                            label = "Cold Side Temp [C]", c = "b")
+        th_leg_0, = ax.plot(ivar_vals,
+                            self.ncs.get_th_actual(),
+                            '-xk', lw=1.5,
+                            label="Hot Side Temp [C]", c="r")
+        tc_leg_0, = ax.plot(ivar_vals,
+                            self.ncs.get_tc_actual(),
+                            '-.xb', lw=1.5,
+                            label="Cold Side Temp [C]", c="b")
         if ivar == IndVar.VOLTAGE:
-            ax.set_xlabel("Voltage [V]", fontsize = 18, weight = 'bold', color = 'black')
+            ax.set_xlabel("Voltage [V]", fontsize=18,
+                          weight='bold', color='black')
         elif ivar == IndVar.CURRENT:
-            ax.set_xlabel("Current [A]", fontsize = 18, weight = 'bold', color = 'black')
+            ax.set_xlabel("Current [A]", fontsize=18,
+                          weight='bold', color='black')
         else:
-            ax.set_xlabel("Time [s]", fontsize = 18, weight = 'bold', color = 'black')
-        ax.set_ylabel("Temperature [C]", fontsize = 18, weight = 'bold', color = 'black')
+            ax.set_xlabel("Time [s]", fontsize=18,
+                          weight='bold', color='black')
+        ax.set_ylabel("Temperature [C]", fontsize=18,
+                      weight='bold', color='black')
         ax.grid()
 
         if ivar == IndVar.TIME:
@@ -121,24 +131,26 @@ class PlantCircuit(Circuit):
             if self.sig_type == Signal.VOLTAGE:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
                                     self.ncs.get_v_arr(),
-                                    '--', lw = 1.5, c='g',
+                                    '--', lw=1.5, c='g',
                                     label="Driving Voltage")
-                ax1.set_ylabel("Voltage [V]", fontsize = 18, weight = 'bold', color = 'black')
+                ax1.set_ylabel("Voltage [V]", fontsize=18,
+                               weight='bold', color='black')
                 ax1.yaxis.label.set_color('black')
                 ax1.spines["right"].set_edgecolor('black')
                 ax1.tick_params(axis='y', colors='black')
             else:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
                                     self.ncs.get_i_arr(),
-                                    '--', lw = 1.5, c='g',
+                                    '--', lw=1.5, c='g',
                                     label="Driving Current")
-                ax1.set_ylabel("Current [A]", fontsize = 18, weight = 'bold', color = 'black')
+                ax1.set_ylabel("Current [A]", fontsize=18,
+                               weight='bold', color='black')
                 ax1.yaxis.label.set_color('black')
                 ax1.spines["right"].set_edgecolor('black')
                 ax1.tick_params(axis='y', colors='black')
 
-        ax.legend(fontsize = 16)
-        ax1.legend(fontsize = 16)
+        ax.legend(fontsize=16)
+        ax1.legend(fontsize=16)
 
     def get_t(self):
         return self.ncs.get_t()
@@ -167,21 +179,20 @@ class PlantCircuit(Circuit):
 
     def run_sim(self):
         sim = self._simulator()
-        sim.options(reltol = 5e-6)
-        anls = sim.transient(step_time = \
-                  (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC *
-                   SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s, \
-                             end_time = SIMULATION_TIME_IN_SEC@u_s, \
-                             use_initial_condition = True)
+        sim.options(reltol=5e-6)
+        anls = sim.transient(step_time=(1.00/(TEMP_SENSOR_SAMPLES_PER_SEC *
+                                              SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s,
+                             end_time=SIMULATION_TIME_IN_SEC@u_s,
+                             use_initial_condition=True)
         Th_final = self.get_th_sensor()[-1]
         Tc_final = self.get_tc_sensor()[-1]
-        V_final  = self.get_v_arr()[-1]
+        V_final = self.get_v_arr()[-1]
         return V_final, Th_final, Tc_final
 
     def characterize_plant(self, val_min, val_max, step_size):
-        sim = self.simulator(simulator = 'ngspice-shared', \
-                             ngspice_shared = self.ncs)
-        sim.options(reltol = 5e-6)
+        sim = self.simulator(simulator='ngspice-shared',
+                             ngspice_shared=self.ncs)
+        sim.options(reltol=5e-6)
         if self.sig_type == Signal.VOLTAGE:
             anls = sim.dc(Vinput_src=slice(val_min, val_max, step_size))
         else:
@@ -189,6 +200,7 @@ class PlantCircuit(Circuit):
 
     def is_steady_state(self):
         return self.ncs.is_steady_state()
+
 
 class NgspiceCustomSrc(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def __init__(self, controller_f, **kwargs):
@@ -280,12 +292,13 @@ class NgspiceCustomSrc(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
 
     def is_steady_state(self):
         return len(set(self.th_sensor[len(self.th_sensor) - 15:])) == 1 and \
-               len(set(self.tc_sensor[len(self.tc_sensor) - 15:])) == 1
+            len(set(self.tc_sensor[len(self.tc_sensor) - 15:])) == 1
 
-### Controllers ###
 
+# Controllers #
 def fig11_repro_test(t, Th_arr, Tc_arr):
     return 2.1@u_A
+
 
 if __name__ == "__main__":
 
@@ -302,10 +315,10 @@ if __name__ == "__main__":
     seed_everything(7777)
     target_temp_in_C = -5.00
     volt_ref, amp_ref = 0.0, 10.0
-    nc = neural_controller(T_ref        = target_temp_in_C, \
-                           hidden_units = 5, \
-                           bias         = False, \
-                           lrate        = 1e-3)
+    nc = neural_controller(T_ref=target_temp_in_C,
+                           hidden_units=5,
+                           bias=False,
+                           lrate=1e-3)
 
     def p_controller(t, Th_arr, Tc_arr):
         return min(12.00,
@@ -323,8 +336,10 @@ if __name__ == "__main__":
         if plot_not_save:
             pC.plot_th_tc(IndVar.TIME)
         else:
-            numpy.savez("Fig11ReproductionTh", x = pC.get_t(), y = pC.get_th_sensor())
-            numpy.savez("Fig11ReproductionTc", x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/Fig11ReproductionTh",
+                     x=pC.get_t(), y=pC.get_th_sensor())
+            np.savez("./results/Fig11ReproductionTc",
+                     x=pC.get_t(), y=pC.get_tc_sensor())
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
@@ -336,8 +351,10 @@ if __name__ == "__main__":
         if plot_not_save:
             pC.plot_th_tc(IndVar.CURRENT)
         else:
-            numpy.savez("ICharacteristicTh", x = pC.get_i_arr(), y = pC.get_th_actual())
-            numpy.savez("ICharacteristicTc", x = pC.get_i_arr(), y = pC.get_tc_actual())
+            np.savez("./results/ICharacteristicTh", x=pC.get_i_arr(),
+                     y=pC.get_th_actual())
+            np.savez("./results/ICharacteristicTc", x=pC.get_i_arr(),
+                     y=pC.get_tc_actual())
         plt.show()
 
     if char_v_repro:
@@ -346,6 +363,8 @@ if __name__ == "__main__":
         if plot_not_save:
             pC.plot_th_tc(IndVar.VOLTAGE)
         else:
-            numpy.savez("VCharacteristicTh", x = pC.get_v_arr(), y = pC.get_th_actual())
-            numpy.savez("VCharacteristicTc", x = pC.get_v_arr(), y = pC.get_tc_actual())
+            np.savez("./results/VCharacteristicTh", x=pC.get_v_arr(),
+                     y=pC.get_th_actual())
+            np.savez("./results/VCharacteristicTc", x=pC.get_v_arr(),
+                     y=pC.get_tc_actual())
         plt.show()

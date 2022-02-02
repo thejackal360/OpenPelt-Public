@@ -14,4 +14,4 @@ fi
 run_command="./src/$var"
 echo $run_command
 
-LD_LIBRARY_PATH=$(pwd)/lib $run_command
+LD_LIBRARY_PATH=$(pwd)/ngspice $run_command
