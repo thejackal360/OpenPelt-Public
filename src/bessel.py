@@ -9,8 +9,10 @@ from PySpice.Spice.Netlist import Circuit, SubCircuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 import numpy
+from initialize_randomness import *
+from neural_controller import *
 
-### Constants ###
+### Simulation Parameters ###
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 5.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
@@ -22,8 +24,7 @@ HOT_SIDE_NODE = 4
 
 INPUT_SRC = 'input_src'
 
-def K_to_C(T_in_C):
-    return T_in_C - 273.15
+### Detector Circuit Parameters ###
 
 TAMB = 296.4
 RP = 1.8
@@ -36,6 +37,11 @@ K_M = 1.768
 C_C = 2.00
 C_CONINT = 304.00
 K_CONINT = 3.1
+
+### Auxiliary Functions ###
+
+def K_to_C(T_in_C):
+    return T_in_C - 273.15
 
 ### Classes ###
 
@@ -82,11 +88,7 @@ class PlantCircuit(Circuit):
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
 
     def clear(self):
-        print("In clear fn: {}".format(len(self.ncs.get_th_actual())))
-        # self.ncs.remove_circuit()
-        self.ncs.destroy()
         self.ncs.clear()
-        print("In clear fn: {}".format(len(self.ncs.get_th_actual())))
 
     def plot_th_tc(self, ivar):
         fig = plt.figure()
@@ -165,6 +167,10 @@ class PlantCircuit(Circuit):
                    SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s, \
                              end_time = SIMULATION_TIME_IN_SEC@u_s, \
                              use_initial_condition = True)
+        Th_final = self.get_th_sensor()[-1]
+        Tc_final = self.get_tc_sensor()[-1]
+        V_final  = self.get_v_arr()[-1]
+        return V_final, Th_final, Tc_final
 
     def characterize_plant(self, val_min, val_max, step_size):
         sim = self.simulator(simulator = 'ngspice-shared', \
@@ -277,11 +283,33 @@ def fig11_repro_test(t, Th_arr, Tc_arr):
 
 if __name__ == "__main__":
 
+    # Sim Parameters
+
     plot_not_save = False
 
     fig11_repro = True
     char_i_repro = True
     char_v_repro = True
+
+    # Initialization
+
+    seed_everything(7777)
+    target_temp_in_C = -5.00
+    volt_ref, amp_ref = 0.0, 10.0
+    nc = neural_controller(T_ref        = target_temp_in_C, \
+                           hidden_units = 5, \
+                           bias         = False, \
+                           lrate        = 1e-3)
+
+    def p_controller(t, Th_arr, Tc_arr):
+        return min(12.00,
+                   0.5 * (Tc_arr[len(Tc_arr) - 1] - target_temp_in_C)) @ u_V
+
+    def volt_input(t, Th_arr, Tc_arr):
+        return volt_ref @ u_V
+
+    def amp_input(t, Th_arr, Tc_arr):
+        return amp_ref @ u_A
     
     if fig11_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)

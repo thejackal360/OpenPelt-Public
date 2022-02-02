@@ -5,7 +5,6 @@ import os
 
 
 default_seed = 7777
-print("Setting all posible default seeds based on {}".format(default_seed))
 
 
 def seed_everything(seed=1234):
