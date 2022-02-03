@@ -63,14 +63,14 @@ class IndVar(Enum):
     TIME = 3
 
 
-class Sequencer(ABC):
+class sequencer(ABC):
 
     @abstractmethod
     def get_ref(self):
         pass
 
 
-class CircularBufferSequencer(Sequencer):
+class circular_buffer_sequencer(sequencer):
 
     def __init__(self, sequence, ngspice_custom_lib):
         self.sequence = sequence
@@ -87,7 +87,7 @@ class CircularBufferSequencer(Sequencer):
         return self.sequence[self.sequence_idx]
 
 
-class Controller(ABC):
+class controller(ABC):
 
     def set_seqr(self, seqr):
         self.seqr = seqr
@@ -101,7 +101,7 @@ class Controller(ABC):
         pass
 
 
-class BangBangController(Controller):
+class bang_bang_controller(controller):
 
     def __init__(self, seqr):
         self.seqr = seqr
@@ -113,7 +113,7 @@ class BangBangController(Controller):
             return 0.00
 
 
-class PIDController(Controller):
+class pid_controller(Controller):
 
     def __init__(self, seqr, kp, ki, kd):
         # https://en.wikipedia.org/wiki/PID_controller
@@ -138,7 +138,7 @@ class PIDController(Controller):
         return output
 
 
-class PlantCircuit(Circuit):
+class plant_circuit(Circuit):
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
@@ -165,7 +165,7 @@ class PlantCircuit(Circuit):
         self.R('6', '13', '12', RP@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=SE)
         # EXTERNAL SOURCE
-        self.ncs = TECLib(self.controller_f, send_data=True)
+        self.ncs = tec_lib(self.controller_f, send_data=True)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
@@ -287,7 +287,7 @@ class PlantCircuit(Circuit):
         return self.ncs.is_steady_state()
 
 
-class TECLib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
+class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def __init__(self, controller_f, ref = 0.00, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
@@ -436,7 +436,7 @@ if __name__ == "__main__":
     os.system("mkdir ./results")
 
     if fig11_repro:
-        pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
+        pC = plant_circuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.run_sim()
         if plot_not_save:
             pC.plot_th_tc(IndVar.TIME)
@@ -454,7 +454,7 @@ if __name__ == "__main__":
             assert pC.is_steady_state()
 
     if char_i_repro:
-        pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
+        pC = plant_circuit("Detector", fig11_repro_test, Signal.CURRENT)
         pC.characterize_plant(-6.00@u_A, 6.00@u_A, 0.01@u_A)
         if plot_not_save:
             pC.plot_th_tc(IndVar.CURRENT)
@@ -466,7 +466,7 @@ if __name__ == "__main__":
             np.save("./results/curr_tc_characterization", data)
 
     if char_v_repro:
-        pC = PlantCircuit("Detector", fig11_repro_test, Signal.VOLTAGE)
+        pC = plant_circuit("Detector", fig11_repro_test, Signal.VOLTAGE)
         pC.characterize_plant(-6.00@u_V, 16.4@u_V, 0.01@u_V)
         if plot_not_save:
             pC.plot_th_tc(IndVar.VOLTAGE)
@@ -478,7 +478,7 @@ if __name__ == "__main__":
             np.save("./results/volt_tc_characterization", data)
 
     if volt_ref_repro:
-        pC = PlantCircuit("Detector", volt_input, Signal.CURRENT)
+        pC = plant_circuit("Detector", volt_input, Signal.CURRENT)
         pC.run_sim()
         if plot_not_save:
             pC.plot_th_tc(IndVar.TIME)
@@ -496,9 +496,9 @@ if __name__ == "__main__":
             assert pC.is_steady_state()
 
     if basic_bang_bang_repro:
-        pC = PlantCircuit("Detector", None, Signal.VOLTAGE)
-        cbs = CircularBufferSequencer([50.00, 30.00], pC.get_ncs())
-        bbc = BangBangController(cbs)
+        pC = plant_circuit("Detector", None, Signal.VOLTAGE)
+        cbs = circular_buffer_sequencer([50.00, 30.00], pC.get_ncs())
+        bbc = bang_bang_controller(cbs)
         pC.set_controller_f(bbc.controller_f)
         pC.run_sim()
         if plot_not_save:
@@ -514,9 +514,9 @@ if __name__ == "__main__":
             assert pC.is_steady_state()
 
     if pid_repro:
-        pC = PlantCircuit("Detector", None, Signal.VOLTAGE)
-        cbs = CircularBufferSequencer([50.00], pC.get_ncs())
-        pidc = PIDController(cbs, 15.00, 0.00, 0.00)
+        pC = plant_circuit("Detector", None, Signal.VOLTAGE)
+        cbs = circular_buffer_sequencer([50.00], pC.get_ncs())
+        pidc = pid_controller(cbs, 15.00, 0.00, 0.00)
         pC.set_controller_f(pidc.controller_f)
         pC.run_sim()
         if plot_not_save:
