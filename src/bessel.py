@@ -60,6 +60,18 @@ class IndVar(Enum):
     CURRENT = 2
     TIME = 3
 
+class Controller(ABC):
+
+    def set_seqr(self, seqr):
+        self.seqr = seqr
+
+    def control_f(self, t, sensor_dict):
+        self.ref = self.seqr.get_ref()
+        return self._control_f(t, self.ref, sensor_dict)
+
+    @abstractmethod
+    def _control_f(self, t, ref, sensor_dict):
+        pass
 
 class PlantCircuit(Circuit):
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
