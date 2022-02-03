@@ -21,7 +21,7 @@ from initialize_randomness import seed_everything
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 3000.00
+SIMULATION_TIME_IN_SEC = 10000.00
 ROUND_DIGITS = 3
 
 COLD_SIDE_NODE = 5
@@ -57,6 +57,11 @@ class Signal(Enum):
     CURRENT = 2
 
 
+class TECPlate(Enum):
+    HOT_SIDE = 1
+    COLD_SIDE = 2
+    
+
 class IndVar(Enum):
     VOLTAGE = 1
     CURRENT = 2
@@ -72,10 +77,11 @@ class sequencer(ABC):
 
 class circular_buffer_sequencer(sequencer):
 
-    def __init__(self, sequence, ngspice_custom_lib):
+    def __init__(self, sequence, ngspice_custom_lib, plate_select):
         self.sequence = sequence
         self.sequence_idx = 0
         self.ngspice_custom_lib = ngspice_custom_lib
+        self.plate_select = plate_select
 
     def get_ref(self):
         if self.ngspice_custom_lib.is_steady_state():
@@ -83,7 +89,8 @@ class circular_buffer_sequencer(sequencer):
                 self.sequence_idx = 0
             else:
                 self.sequence_idx += 1
-        self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx])
+        self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx], \
+                                        self.plate_select)
         return self.sequence[self.sequence_idx]
 
 
@@ -133,7 +140,7 @@ class pid_controller(controller):
         output = (self.kp * proportional) + \
                  (self.ki * self.integral) + \
                  (self.kd * derivative)
-        output = min(16.00, output)
+        output = min(16.00, max(-6.00, output))
         self.prev_err = error
         return output
 
@@ -288,13 +295,14 @@ class plant_circuit(Circuit):
 
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
-    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1500, **kwargs):
+    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1500, plate_select = TECPlate.HOT_SIDE, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.ref = ref
+        self.plate_select = plate_select
         self.t = []
         self.th_actual = []
         self.tc_actual = []
@@ -308,17 +316,22 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.steady_state_cycles = steady_state_cycles
         self.th_sensor_window = []
         self.th_sensor_error = []
+        self.tc_sensor_window = []
+        self.tc_sensor_error = []
 
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
 
-    def set_ref(self, ref):
+    def set_ref(self, ref, plate_select):
         self.ref = ref
+        self.plate_select = plate_select
         if self.ref != 0:
             self.th_sensor_error = [abs(x - self.ref) / self.ref < 0.05 for x in self.th_sensor_window]
+            self.tc_sensor_error = [abs(x - self.ref) / self.ref < 0.05 for x in self.tc_sensor_window]
         else:
             # TODO
             self.th_sensor_error = [abs(x) < 0.05 for x in self.th_sensor_window]
+            self.tc_sensor_error = [abs(x) < 0.05 for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         print("Time {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real, \
@@ -330,6 +343,8 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             if len(self.th_sensor_window) == self.steady_state_cycles:
                 del self.th_sensor_window[0]
             self.th_sensor_window.append(self.th_sensor[-1])
+            if len(self.th_sensor_error) == self.steady_state_cycles:
+                del self.th_sensor_error[0]
             if self.ref != 0:
                 self.th_sensor_error.append(abs(self.th_sensor[-1] - self.ref) / self.ref < 0.05)
             else:
@@ -337,6 +352,16 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
                 self.th_sensor_error.append(abs(self.th_sensor[-1]) < 0.05)
             self.tc_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
+            if len(self.tc_sensor_window) == self.steady_state_cycles:
+                del self.tc_sensor_window[0]
+            self.tc_sensor_window.append(self.tc_sensor[-1])
+            if len(self.tc_sensor_error) == self.steady_state_cycles:
+                del self.tc_sensor_error[0]
+            if self.ref != 0:
+                self.tc_sensor_error.append(abs(self.tc_sensor[-1] - self.ref) / self.ref < 0.05)
+            else:
+                # TODO
+                self.tc_sensor_error.append(abs(self.tc_sensor[-1]) < 0.05)
             self.timestep_counter = 0
         else:
             self.th_sensor.append(self.th_sensor[len(self.th_sensor) - 1])
@@ -404,7 +429,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         return 0
 
     def is_steady_state(self):
-        return all(self.th_sensor_error)
+        return all(self.th_sensor_error) if self.plate_select == TECPlate.HOT_SIDE else all(self.tc_sensor_error)
 
 
 if __name__ == "__main__":
@@ -418,7 +443,8 @@ if __name__ == "__main__":
     char_v_repro = False # True
     volt_ref_repro = False # True
     basic_bang_bang_repro = False # True
-    pid_repro = True
+    pid_repro_hot = True # True
+    pid_repro_cold = False # True
 
     # Initialization
 
@@ -523,10 +549,10 @@ if __name__ == "__main__":
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
 
-    if pid_repro:
+    if pid_repro_hot:
         pC = plant_circuit("Detector", None, Signal.VOLTAGE)
-        cbs = circular_buffer_sequencer([50.00], pC.get_ncs())
-        pidc = pid_controller(cbs, 12.00, 0.005, 0.00)
+        cbs = circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs(), TECPlate.HOT_SIDE)
+        pidc = pid_controller(cbs, 8.00, 0.00, 0.00)
         pC.set_controller_f(pidc.controller_f)
         pC.run_sim()
         if plot_not_save:
