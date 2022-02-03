@@ -60,6 +60,30 @@ class IndVar(Enum):
     CURRENT = 2
     TIME = 3
 
+
+class Sequencer(ABC):
+
+    @abstractmethod
+    def get_ref(self):
+        pass
+
+
+class CircularBufferSequencer(Sequencer):
+
+    def __init__(self, sequence, ngspice_custom_lib):
+        self.sequence = sequence
+        self.sequence_idx = 0
+        self.ngspice_custom_lib = ngspice_custom_lib
+
+    def get_ref(self):
+        if self.ngspice_custom_lib.is_steady_state():
+            if self.sequence_idx == len(self.sequence) - 1:
+                self.sequence_idx = 0
+            else:
+                self.sequence_idx += 1
+        return self.sequence[self.sequence_idx]
+
+
 class Controller(ABC):
 
     def set_seqr(self, seqr):
