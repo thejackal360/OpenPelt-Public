@@ -23,6 +23,7 @@ TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
 SIMULATION_TIME_IN_SEC = 10000.00
 ROUND_DIGITS = 3
+ERR_TOL = 0.15
 
 COLD_SIDE_NODE = 5
 HOT_SIDE_NODE = 4
@@ -77,11 +78,10 @@ class sequencer(ABC):
 
 class circular_buffer_sequencer(sequencer):
 
-    def __init__(self, sequence, ngspice_custom_lib, plate_select):
+    def __init__(self, sequence, ngspice_custom_lib):
         self.sequence = sequence
         self.sequence_idx = 0
         self.ngspice_custom_lib = ngspice_custom_lib
-        self.plate_select = plate_select
 
     def get_ref(self):
         if self.ngspice_custom_lib.is_steady_state():
@@ -90,7 +90,7 @@ class circular_buffer_sequencer(sequencer):
             else:
                 self.sequence_idx += 1
         self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx], \
-                                        self.plate_select)
+                                        self.ngspice_custom_lib.get_plate_select())
         return self.sequence[self.sequence_idx]
 
 
@@ -122,7 +122,7 @@ class bang_bang_controller(controller):
 
 class pid_controller(controller):
 
-    def __init__(self, seqr, kp, ki, kd):
+    def __init__(self, seqr, kp, ki, kd, plate_select):
         # https://en.wikipedia.org/wiki/PID_controller
         self.seqr = seqr
         self.kp = kp
@@ -131,9 +131,10 @@ class pid_controller(controller):
         self.dt = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC * SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))
         self.prev_err = 0
         self.integral = 0
+        self.plate_select = plate_select
 
     def _controller_f(self, t, ref, sensor_dict):
-        error = ref - sensor_dict["th"][-1]
+        error = ref - sensor_dict["th" if self.plate_select == TECPlate.HOT_SIDE else "tc"][-1]
         proportional = error
         self.integral = self.integral + (error * self.dt)
         derivative = (error - self.prev_err) / self.dt
@@ -146,7 +147,7 @@ class pid_controller(controller):
 
 
 class plant_circuit(Circuit):
-    def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
+    def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE, plate_select = TECPlate.HOT_SIDE):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
@@ -172,11 +173,16 @@ class plant_circuit(Circuit):
         self.R('6', '13', '12', RP@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=SE)
         # EXTERNAL SOURCE
-        self.ncs = tec_lib(self.controller_f, send_data=True)
+        self.plate_select = plate_select
+        self.ncs = tec_lib(self.controller_f, send_data=True, plate_select = self.plate_select)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
+
+    def set_plate_select(self, plate_select):
+        self.plate_select = plate_select
+        self.ncs.set_plate_select(self.plate_select)
 
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
@@ -205,6 +211,10 @@ class plant_circuit(Circuit):
                             self.ncs.get_tc_actual(),
                             '-.xb', lw=1.5,
                             label="Cold Side Temp [C]", c="b")
+        ref_leg_0, = ax.plot(ivar_vals,
+                             self.ncs.get_ref_arr(),
+                             '*', lw=1.5,
+                             label="Ref Temp [C]", c = 'y')
         if ivar == IndVar.VOLTAGE:
             ax.set_xlabel("Voltage [V]", fontsize=18,
                           weight='bold', color='black')
@@ -295,13 +305,14 @@ class plant_circuit(Circuit):
 
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
-    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1500, plate_select = TECPlate.HOT_SIDE, **kwargs):
+    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1000, plate_select = TECPlate.HOT_SIDE, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.ref = ref
+        self.ref_arr = []
         self.plate_select = plate_select
         self.t = []
         self.th_actual = []
@@ -319,6 +330,18 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.tc_sensor_window = []
         self.tc_sensor_error = []
 
+    def get_ref_arr(self):
+        return self.ref_arr
+
+    def get_ref(self):
+        return self.ref
+
+    def get_plate_select(self):
+        return self.plate_select
+
+    def set_plate_select(self, plate_select):
+        self.plate_select = plate_select
+
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
 
@@ -326,12 +349,12 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.ref = ref
         self.plate_select = plate_select
         if self.ref != 0:
-            self.th_sensor_error = [abs(x - self.ref) / self.ref < 0.05 for x in self.th_sensor_window]
-            self.tc_sensor_error = [abs(x - self.ref) / self.ref < 0.05 for x in self.tc_sensor_window]
+            self.th_sensor_error = [abs(x - self.ref) / abs(self.ref) < ERR_TOL for x in self.th_sensor_window]
+            self.tc_sensor_error = [abs(x - self.ref) / abs(self.ref) < ERR_TOL for x in self.tc_sensor_window]
         else:
             # TODO
-            self.th_sensor_error = [abs(x) < 0.05 for x in self.th_sensor_window]
-            self.tc_sensor_error = [abs(x) < 0.05 for x in self.tc_sensor_window]
+            self.th_sensor_error = [abs(x) < ERR_TOL for x in self.th_sensor_window]
+            self.tc_sensor_error = [abs(x) < ERR_TOL for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         print("Time {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real, \
@@ -346,10 +369,10 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             if len(self.th_sensor_error) == self.steady_state_cycles:
                 del self.th_sensor_error[0]
             if self.ref != 0:
-                self.th_sensor_error.append(abs(self.th_sensor[-1] - self.ref) / self.ref < 0.05)
+                self.th_sensor_error.append(abs(self.th_sensor[-1] - self.ref) / self.ref < ERR_TOL)
             else:
                 # TODO
-                self.th_sensor_error.append(abs(self.th_sensor[-1]) < 0.05)
+                self.th_sensor_error.append(abs(self.th_sensor[-1]) < ERR_TOL)
             self.tc_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
             if len(self.tc_sensor_window) == self.steady_state_cycles:
@@ -358,10 +381,10 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             if len(self.tc_sensor_error) == self.steady_state_cycles:
                 del self.tc_sensor_error[0]
             if self.ref != 0:
-                self.tc_sensor_error.append(abs(self.tc_sensor[-1] - self.ref) / self.ref < 0.05)
+                self.tc_sensor_error.append(abs(self.tc_sensor[-1] - self.ref) / self.ref < ERR_TOL)
             else:
                 # TODO
-                self.tc_sensor_error.append(abs(self.tc_sensor[-1]) < 0.05)
+                self.tc_sensor_error.append(abs(self.tc_sensor[-1]) < ERR_TOL)
             self.timestep_counter = 0
         else:
             self.th_sensor.append(self.th_sensor[len(self.th_sensor) - 1])
@@ -385,6 +408,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         except KeyError:
             # DC sweep sim
             pass
+        self.ref_arr.append(self.ref)
         return 0
 
     def clear(self):
@@ -429,7 +453,16 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         return 0
 
     def is_steady_state(self):
-        return all(self.th_sensor_error) if self.plate_select == TECPlate.HOT_SIDE else all(self.tc_sensor_error)
+        if self.plate_select == TECPlate.HOT_SIDE:
+            if len(self.th_sensor_error) < self.steady_state_cycles:
+                return False
+            else:
+                return all(self.th_sensor_error)
+        else:
+            if len(self.tc_sensor_error) < self.steady_state_cycles:
+                return False
+            else:
+                return all(self.tc_sensor_error)
 
 
 if __name__ == "__main__":
@@ -443,8 +476,8 @@ if __name__ == "__main__":
     char_v_repro = False # True
     volt_ref_repro = False # True
     basic_bang_bang_repro = False # True
-    pid_repro_hot = True # True
-    pid_repro_cold = False # True
+    pid_repro_hot = False # True
+    pid_repro_cold = True # True
 
     # Initialization
 
@@ -566,3 +599,18 @@ if __name__ == "__main__":
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
+
+    if pid_repro_cold:
+        pC = plant_circuit("Detector", None, Signal.VOLTAGE, TECPlate.COLD_SIDE)
+        cbs = circular_buffer_sequencer([-1.00, 10.00], pC.get_ncs())
+        pidc = pid_controller(cbs, -30.00, -0.0007, -0.1, TECPlate.COLD_SIDE)
+        pC.set_controller_f(pidc.controller_f)
+        pC.run_sim()
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.TIME)
+            plt.show()
+        else:
+            # TODO: Change to np.save and change names to camelcase
+            np.savez("./results/PIDTh", x = pC.get_t(), y = pC.get_th_sensor())
+            np.savez("./results/PIDTc", x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/PIDV",  x = pC.get_t(), y = pC.get_v_arr())
