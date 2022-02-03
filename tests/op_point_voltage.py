@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+import matplotlib.pyplot as plt
+import os
 import bessel
 from PySpice.Unit import u_V
 import time

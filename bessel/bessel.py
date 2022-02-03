@@ -14,9 +14,6 @@ from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
-from neural_controller import neural_controller
-from initialize_randomness import seed_everything
-
 # Simulation Parameters
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
@@ -194,7 +191,7 @@ class plant_circuit(Circuit):
     def clear(self):
         self.ncs.clear()
 
-    def plot_th_tc(self, ivar, plot_driver = True):
+    def plot_th_tc(self, ivar, plot_driver = True, include_ref = False):
         fig = plt.figure()
         ax = fig.add_subplot()
         if ivar == IndVar.VOLTAGE:
@@ -211,10 +208,11 @@ class plant_circuit(Circuit):
                             self.ncs.get_tc_actual(),
                             '-.xb', lw=1.5,
                             label="Cold Side Temp [C]", c="b")
-        ref_leg_0, = ax.plot(ivar_vals,
-                             self.ncs.get_ref_arr(),
-                             '*', lw=1.5,
-                             label="Ref Temp [C]", c = 'y')
+        if include_ref:
+            ref_leg_0, = ax.plot(ivar_vals,
+                                 self.ncs.get_ref_arr(),
+                                 '*', lw=1.5,
+                                 label="Ref Temp [C]", c = 'y')
         if ivar == IndVar.VOLTAGE:
             ax.set_xlabel("Voltage [V]", fontsize=18,
                           weight='bold', color='black')
@@ -357,9 +355,6 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.tc_sensor_error = [abs(x) < ERR_TOL for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
-        print("Time {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real, \
-                                                 K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), \
-                                                 K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real)))
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))

@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+import matplotlib.pyplot as plt
+import os
 import bessel
 from PySpice.Unit import u_V
 import time
@@ -9,7 +13,7 @@ if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
     pC = bessel.plant_circuit("Detector",
-                              lambda : 0.0@u_V,
+                              lambda t, Th_arr: 0.0@u_V,
                               bessel.Signal.VOLTAGE)
     pC.run_sim()
     pC.plot_th_tc(bessel.IndVar.TIME)
