@@ -7,7 +7,7 @@ from neural_controller import neural_controller
 
 if __name__ == '__main__':
     batch_size = 1
-    epochs = 15
+    epochs = 25
 
     v, tc = np.load("results/volt_tc_characterization.npy").astype('f')
     v, th = np.load("results/volt_th_characterization.npy").astype('f')
@@ -22,12 +22,13 @@ if __name__ == '__main__':
 
     nc = neural_controller(T_ref=t_ref[0],
                            input_units=3,
-                           hidden_units=5,
+                           hidden_units=6,
                            bias=True,
-                           lrate=0.001)
+                           lrate=0.0005)
 
     train_patterns = int(X_train.shape[0] / batch_size)
 
+    loss_track, acc_track = [], []
     for e in range(epochs):
         for i in range(X_train.shape[0]):
             nc.learn(X_train[i, 1], X_train[i, 0], X_train[i, 2], y_train[i])
@@ -39,7 +40,13 @@ if __name__ == '__main__':
                     acc += 1.0
             acc /= X_test.shape[0]
             loss = np.mean(nc.loss_)
+            loss_track.append(loss)
+            acc_track.append(acc)
             print("[Epoch %d, Loss %f, Accuracy: %f]" % (e, nc.loss_[-1], acc))
 
-    plt.plot(nc.loss_)
+    plt.figure(figsize=(11, 4))
+    plt.subplot(121)
+    plt.plot(loss_track)
+    plt.subplot(122)
+    plt.plot(acc_track)
     plt.show()
