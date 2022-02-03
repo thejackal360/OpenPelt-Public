@@ -2,6 +2,8 @@
 
 # Imports
 
+from abc import ABC, abstractmethod
+
 import os
 import numpy as np
 
@@ -81,6 +83,7 @@ class CircularBufferSequencer(Sequencer):
                 self.sequence_idx = 0
             else:
                 self.sequence_idx += 1
+        self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx])
         return self.sequence[self.sequence_idx]
 
 
@@ -91,7 +94,7 @@ class Controller(ABC):
 
     def controller_f(self, t, sensor_dict):
         self.ref = self.seqr.get_ref()
-        return self._control_f(t, self.ref, sensor_dict)
+        return self._controller_f(t, self.ref, sensor_dict)
 
     @abstractmethod
     def _controller_f(self, t, ref, sensor_dict):
@@ -104,10 +107,10 @@ class BangBangController(Controller):
         self.seqr = seqr
 
     def _controller_f(self, t, ref, sensor_dict):
-        if sensor_dict["th"] < ref:
-            return 5.00
+        if sensor_dict["th"][-1] < ref:
+            return 14.00
         else:
-            return -5.00
+            return 0.00
 
 
 class PlantCircuit(Circuit):
@@ -143,10 +146,17 @@ class PlantCircuit(Circuit):
         else:
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
 
+    def set_controller_f(self, controller_f):
+        self.controller_f = controller_f
+        self.ncs.set_controller_f(self.controller_f)
+
+    def get_ncs(self):
+        return self.ncs
+
     def clear(self):
         self.ncs.clear()
 
-    def plot_th_tc(self, ivar):
+    def plot_th_tc(self, ivar, plot_driver = True):
         fig = plt.figure()
         ax = fig.add_subplot()
         if ivar == IndVar.VOLTAGE:
@@ -176,7 +186,7 @@ class PlantCircuit(Circuit):
                       weight='bold', color='black')
         ax.grid()
 
-        if ivar == IndVar.TIME:
+        if ivar == IndVar.TIME and plot_driver:
             ax1 = ax.twinx()
             if self.sig_type == Signal.VOLTAGE:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
@@ -198,9 +208,9 @@ class PlantCircuit(Circuit):
                 ax1.yaxis.label.set_color('black')
                 ax1.spines["right"].set_edgecolor('black')
                 ax1.tick_params(axis='y', colors='black')
+            ax1.legend(fontsize=16)
 
         ax.legend(fontsize=16)
-        ax1.legend(fontsize=16)
 
     def get_t(self):
         return self.ncs.get_t()
@@ -253,12 +263,13 @@ class PlantCircuit(Circuit):
 
 
 class TECLib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
-    def __init__(self, controller_f, **kwargs):
+    def __init__(self, controller_f, ref = 0.00, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
+        self.ref = ref
         self.t = []
         self.th_actual = []
         self.tc_actual = []
@@ -269,6 +280,12 @@ class TECLib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.timestep_counter = SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE
         self.next_v = 0.00
         self.next_i = 0.00
+
+    def set_controller_f(self, controller_f):
+        self.controller_f = controller_f
+
+    def set_ref(self, ref):
+        self.ref = ref
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
@@ -343,25 +360,29 @@ class TECLib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         return 0
 
     def is_steady_state(self):
-        return len(set(self.th_sensor[len(self.th_sensor) - 15:])) == 1 and \
-            len(set(self.tc_sensor[len(self.tc_sensor) - 15:])) == 1
-
-
-# Controllers #
-def fig11_repro_test(t, Th_arr, Tc_arr):
-    return 2.1@u_A
+        steady_state_cycles = 3000
+        if len(self.th_sensor) < steady_state_cycles:
+            return False
+        else:
+            th_last_n = self.th_sensor[len(self.th_sensor) - steady_state_cycles:]
+        if len(self.tc_sensor) < steady_state_cycles:
+            return False
+        else:
+            tc_last_n = self.tc_sensor[len(self.tc_sensor) - steady_state_cycles:]
+        return all([abs(x - self.ref) / self.ref < 0.05 for x in th_last_n])
 
 
 if __name__ == "__main__":
 
     # Sim Parameters
 
-    plot_not_save = False
+    plot_not_save = True # False
 
-    fig11_repro = True
-    char_i_repro = True
-    char_v_repro = True
-    volt_ref_repro = True
+    fig11_repro = False # True
+    char_i_repro = False # True
+    char_v_repro = False # True
+    volt_ref_repro = False # True
+    basic_bang_bang_repro = True
 
     # Initialization
 
@@ -372,6 +393,9 @@ if __name__ == "__main__":
                            hidden_units=5,
                            bias=False,
                            lrate=1e-3)
+
+    def fig11_repro_test(t, Th_arr, Tc_arr):
+        return 2.1@u_A
 
     def p_controller(t, Th_arr, Tc_arr):
         return min(12.00,
@@ -428,7 +452,7 @@ if __name__ == "__main__":
             np.save("./results/volt_tc_characterization", data)
 
     if volt_ref_repro:
-        pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
+        pC = PlantCircuit("Detector", volt_input, Signal.CURRENT)
         pC.run_sim()
         if plot_not_save:
             pC.plot_th_tc(IndVar.TIME)
@@ -441,6 +465,24 @@ if __name__ == "__main__":
             data = np.array([pC.get_t(), pC.get_v_arr()])
             np.save("./results/time_volt", data)
 
+        if not pC.is_steady_state():
+            print("Need sim to run for longer!")
+            assert pC.is_steady_state()
+
+    if basic_bang_bang_repro:
+        pC = PlantCircuit("Detector", None, Signal.VOLTAGE)
+        cbs = CircularBufferSequencer([50.00, 30.00], pC.get_ncs())
+        bbc = BangBangController(cbs)
+        pC.set_controller_f(bbc.controller_f)
+        pC.run_sim()
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.TIME, plot_driver = False)
+            plt.show()
+        else:
+            # TODO: Change to np.save and change names to camelcase
+            np.savez("./results/BasicBangBangTh", x = pC.get_t(), y = pC.get_th_sensor())
+            np.savez("./results/BasicBangBangTc", x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/BasicBangBangV",  x = pC.get_t(), y = pC.get_v_arr())
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
