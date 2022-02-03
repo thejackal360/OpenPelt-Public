@@ -65,12 +65,12 @@ class Controller(ABC):
     def set_seqr(self, seqr):
         self.seqr = seqr
 
-    def control_f(self, t, sensor_dict):
+    def controller_f(self, t, sensor_dict):
         self.ref = self.seqr.get_ref()
         return self._control_f(t, self.ref, sensor_dict)
 
     @abstractmethod
-    def _control_f(self, t, ref, sensor_dict):
+    def _controller_f(self, t, ref, sensor_dict):
         pass
 
 class PlantCircuit(Circuit):
@@ -100,7 +100,7 @@ class PlantCircuit(Circuit):
         self.R('6', '13', '12', RP@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=SE)
         # EXTERNAL SOURCE
-        self.ncs = NgspiceCustomSrc(self.controller_f, send_data=True)
+        self.ncs = TECLib(self.controller_f, send_data=True)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
@@ -215,7 +215,7 @@ class PlantCircuit(Circuit):
         return self.ncs.is_steady_state()
 
 
-class NgspiceCustomSrc(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
+class TECLib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def __init__(self, controller_f, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
@@ -253,9 +253,11 @@ class NgspiceCustomSrc(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             (actual_vector_values['V(13)'].real - actual_vector_values['V(12)'].real)/RP)
         try:
             self.next_v = self.controller_f(
-                actual_vector_values['time'].real, self.th_sensor, self.tc_sensor)
+                actual_vector_values['time'].real,
+                {"th" : self.th_sensor, "tc" : self.tc_sensor})
             self.next_i = self.controller_f(
-                actual_vector_values['time'].real, self.th_sensor, self.tc_sensor)
+                actual_vector_values['time'].real,
+                {"th" : self.th_sensor, "tc" : self.tc_sensor})
             self.t.append(actual_vector_values['time'].real)
         except KeyError:
             # DC sweep sim
