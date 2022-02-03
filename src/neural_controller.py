@@ -8,11 +8,11 @@ from PySpice.Unit import u_V
 
 
 class MLP(nn.Module):
-    def __init__(self, hidden_units=4, bias=True):
+    def __init__(self, input_units=3, hidden_units=4, bias=True):
         super(MLP, self).__init__()
         self.bias = bias
 
-        self.fc1 = nn.Linear(2, hidden_units, bias=self.bias)
+        self.fc1 = nn.Linear(input_units, hidden_units, bias=self.bias)
         self.fc2 = nn.Linear(hidden_units, 1, bias=self.bias)
 
         self.relu = nn.ReLU()
@@ -36,14 +36,19 @@ class MLP(nn.Module):
     def forward(self, x):
         """ forward """
         out = self.relu(self.fc1(x))
-        out = self.relu(self.fc2(out))
+        out = self.fc2(out)
         return out
 
 
 class neural_controller:
-    def __init__(self, T_ref=-20.0, hidden_units=4, bias=True, lrate=0.01):
+    def __init__(self,
+                 T_ref=-20.0,
+                 input_units=3,
+                 hidden_units=5,
+                 bias=True,
+                 lrate=0.01):
         adam = True
-        self.t_ref = torch.FloatTensor([T_ref])
+        # self.t_ref = torch.FloatTensor([T_ref])
         self.net = MLP(hidden_units=hidden_units, bias=bias)
         if adam:
             self.optimizer = Adam(self.net.parameters(),
@@ -55,20 +60,32 @@ class neural_controller:
                                  weight_decay=1e-4,
                                  momentum=0.9)
         self.criterion = nn.MSELoss()
+        self.loss_ = []
 
-    def learn(self, t, T_hot, T_cold):
-        x = torch.from_numpy(np.hstack([T_hot[-1], T_cold[-1]]).astype('f'))
-        self.z = torch.tensor([T_cold[-1]], requires_grad=True)
+    def learn(self, T_hot, T_cold, T_ref, V):
+        x = torch.from_numpy(np.array([T_hot,
+                                       T_cold,
+                                       T_ref]).astype('f'))
+        self.t_ref = torch.tensor([T_ref], requires_grad=True)
+        self.z = torch.tensor([T_cold], requires_grad=True)
+        self.v = torch.tensor([V], requires_grad=True)
+
         self.optimizer.zero_grad()
         yc = self.net(x)
-        loss = self.criterion(self.z, self.t_ref)
+        # print(self.z.shape, self.t_ref.shape)
+        # loss = self.criterion(self.z, self.t_ref)
+        loss = self.criterion(yc, self.v)
         loss.backward()
         self.optimizer.step()
+
+        # print("Target: %f, Pred: %f" % (self.v.item(), yc.item()))
         yc = yc.detach().cpu().numpy()[-1] @ u_V
-        print(yc, self.z, T_hot[-1], T_cold[-1], self.t_ref)
+        self.loss_.append(loss.item())
         return yc
 
-    def controller(self, t, T_hot, T_cold, *args):
-        x = torch.from_numpy(np.vstack([T_hot, T_cold]))
+    def controller(self, T_hot, T_cold, T_ref, *args):
+        x = torch.from_numpy(np.array([T_hot,
+                                       T_cold,
+                                       T_ref]).astype('f'))
         yc = self.net(x)
-        return yc
+        return np.round(yc.detach().cpu().numpy()[-1], 2)

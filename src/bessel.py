@@ -341,12 +341,13 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.TIME)
             plt.show()
         else:
-            np.savez("./results/Fig11ReproductionTh", 
-                     x = pC.get_t(), y = pC.get_th_sensor())
-            np.savez("./results/Fig11ReproductionTc",
-                     x = pC.get_t(), y = pC.get_tc_sensor())
-            np.savez("./results/Fig11ReproductionI",
-                     x = pC.get_t(), y = pC.get_i_arr())
+            data = np.array([pC.get_t(), pC.get_th_sensor()])
+            np.save("./results/time_th_sensor_curr", data)
+            data = np.array([pC.get_t(), pC.get_tc_sensor()])
+            np.save("./results/time_tc_sensor_curr", data)
+            data = np.array([pC.get_t(), pC.get_i_arr()])
+            np.save("./results/time_curr", data)
+
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
@@ -358,10 +359,10 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.CURRENT)
             plt.show()
         else:
-            np.savez("./results/ICharacteristicTh", x=pC.get_i_arr(),
-                     y=pC.get_th_actual())
-            np.savez("./results/ICharacteristicTc", x=pC.get_i_arr(),
-                     y=pC.get_tc_actual())
+            data = np.array([pC.get_i_arr(), pC.get_th_actual()])
+            np.save("./results/curr_th_characterization", data)
+            data = np.array([pC.get_i_arr(), pC.get_tc_actual()])
+            np.save("./results/curr_tc_characterization", data)
 
     if char_v_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.VOLTAGE)
@@ -370,10 +371,10 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.VOLTAGE)
             plt.show()
         else:
-            np.savez("./results/VCharacteristicTh", x=pC.get_v_arr(),
-                     y=pC.get_th_actual())
-            np.savez("./results/VCharacteristicTc", x=pC.get_v_arr(),
-                     y=pC.get_tc_actual())
+            data = np.array([pC.get_v_arr(), pC.get_th_actual()])
+            np.save("./results/volt_th_characterization", data)
+            data = np.array([pC.get_v_arr(), pC.get_tc_actual()])
+            np.save("./results/volt_tc_characterization", data)
 
     if volt_ref_repro:
         pC = PlantCircuit("Detector", fig11_repro_test, Signal.CURRENT)
@@ -382,9 +383,13 @@ if __name__ == "__main__":
             pC.plot_th_tc(IndVar.TIME)
             plt.show()
         else:
-            np.savez("./results/Fig11ReproductionTh", x = pC.get_t(), y = pC.get_th_sensor())
-            np.savez("./results/Fig11ReproductionTc", x = pC.get_t(), y = pC.get_tc_sensor())
-            np.savez("./results/Fig11ReproductionV",  x = pC.get_t(), y = pC.get_v_arr())
+            data = np.array([pC.get_t(), pC.get_th_sensor()])
+            np.save("./results/time_th_volt", data)
+            data = np.array([pC.get_t(), pC.get_tc_sensor()])
+            np.save("./results/time_tc_volt", data)
+            data = np.array([pC.get_t(), pC.get_v_arr()])
+            np.save("./results/time_volt", data)
+
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
