@@ -97,6 +97,19 @@ class Controller(ABC):
     def _controller_f(self, t, ref, sensor_dict):
         pass
 
+
+class BangBangController(Controller):
+
+    def __init__(self, seqr):
+        self.seqr = seqr
+
+    def _controller_f(self, t, ref, sensor_dict):
+        if sensor_dict["th"] < ref:
+            return 5.00
+        else:
+            return -5.00
+
+
 class PlantCircuit(Circuit):
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
         Circuit.__init__(self, name)
