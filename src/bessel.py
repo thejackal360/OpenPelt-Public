@@ -113,7 +113,7 @@ class bang_bang_controller(controller):
             return 0.00
 
 
-class pid_controller(Controller):
+class pid_controller(controller):
 
     def __init__(self, seqr, kp, ki, kd):
         # https://en.wikipedia.org/wiki/PID_controller
@@ -288,7 +288,7 @@ class plant_circuit(Circuit):
 
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
-    def __init__(self, controller_f, ref = 0.00, **kwargs):
+    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 3000, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
@@ -305,17 +305,33 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.timestep_counter = SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE
         self.next_v = 0.00
         self.next_i = 0.00
+        self.steady_state_cycles = steady_state_cycles
+        self.th_sensor_window = []
+        self.th_sensor_error = []
 
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
 
     def set_ref(self, ref):
         self.ref = ref
+        if self.ref != 0:
+            self.th_sensor_error = [abs(x - self.ref) / self.ref < 0.05 for x in self.th_sensor_window]
+        else:
+            # TODO
+            self.th_sensor_error = [abs(x) < 0.05 for x in self.th_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
+            if len(self.th_sensor_window) == self.steady_state_cycles:
+                del self.th_sensor_window[0]
+            self.th_sensor_window.append(self.th_sensor[-1])
+            if self.ref != 0:
+                self.th_sensor_error.append(abs(self.th_sensor[-1] - self.ref) / self.ref < 0.05)
+            else:
+                # TODO
+                self.th_sensor_error.append(abs(self.th_sensor[-1]) < 0.05)
             self.tc_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
             self.timestep_counter = 0
@@ -385,29 +401,20 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         return 0
 
     def is_steady_state(self):
-        steady_state_cycles = 3000
-        if len(self.th_sensor) < steady_state_cycles:
-            return False
-        else:
-            th_last_n = self.th_sensor[len(self.th_sensor) - steady_state_cycles:]
-        if len(self.tc_sensor) < steady_state_cycles:
-            return False
-        else:
-            tc_last_n = self.tc_sensor[len(self.tc_sensor) - steady_state_cycles:]
-        return all([abs(x - self.ref) / self.ref < 0.05 for x in th_last_n])
+        return all(self.th_sensor_error)
 
 
 if __name__ == "__main__":
 
     # Sim Parameters
 
-    plot_not_save = False
+    plot_not_save = True # False
 
-    fig11_repro = True
-    char_i_repro = True
-    char_v_repro = True
-    volt_ref_repro = True
-    basic_bang_bang_repro = True
+    fig11_repro = False # True
+    char_i_repro = False # True
+    char_v_repro = False # True
+    volt_ref_repro = False # True
+    basic_bang_bang_repro = False # True
     pid_repro = True
 
     # Initialization
