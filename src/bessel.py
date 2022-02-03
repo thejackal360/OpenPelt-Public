@@ -19,7 +19,7 @@ from initialize_randomness import seed_everything
 
 # Simulation Parameters
 
-TEMP_SENSOR_SAMPLES_PER_SEC = 5.00
+TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
 SIMULATION_TIME_IN_SEC = 3000.00
 ROUND_DIGITS = 3
@@ -288,7 +288,7 @@ class plant_circuit(Circuit):
 
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
-    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 3000, **kwargs):
+    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1500, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
@@ -321,6 +321,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.th_sensor_error = [abs(x) < 0.05 for x in self.th_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
+        print("Time {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real, \
+                                                 K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), \
+                                                 K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real)))
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
@@ -523,7 +526,7 @@ if __name__ == "__main__":
     if pid_repro:
         pC = plant_circuit("Detector", None, Signal.VOLTAGE)
         cbs = circular_buffer_sequencer([50.00], pC.get_ncs())
-        pidc = pid_controller(cbs, 15.00, 0.00, 0.00)
+        pidc = pid_controller(cbs, 12.00, 0.005, 0.00)
         pC.set_controller_f(pidc.controller_f)
         pC.run_sim()
         if plot_not_save:
