@@ -113,6 +113,31 @@ class BangBangController(Controller):
             return 0.00
 
 
+class PIDController(Controller):
+
+    def __init__(self, seqr, kp, ki, kd):
+        # https://en.wikipedia.org/wiki/PID_controller
+        self.seqr = seqr
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.dt = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC * SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))
+        self.prev_err = 0
+        self.integral = 0
+
+    def _controller_f(self, t, ref, sensor_dict):
+        error = ref - sensor_dict["th"][-1]
+        proportional = error
+        self.integral = self.integral + (error * self.dt)
+        derivative = (error - self.prev_err) / self.dt
+        output = (self.kp * proportional) + \
+                 (self.ki * self.integral) + \
+                 (self.kd * derivative)
+        output = min(16.00, output)
+        self.prev_err = error
+        return output
+
+
 class PlantCircuit(Circuit):
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE):
         Circuit.__init__(self, name)
@@ -376,13 +401,14 @@ if __name__ == "__main__":
 
     # Sim Parameters
 
-    plot_not_save = True # False
+    plot_not_save = False
 
-    fig11_repro = False # True
-    char_i_repro = False # True
-    char_v_repro = False # True
-    volt_ref_repro = False # True
+    fig11_repro = True
+    char_i_repro = True
+    char_v_repro = True
+    volt_ref_repro = True
     basic_bang_bang_repro = True
+    pid_repro = True
 
     # Initialization
 
@@ -483,6 +509,24 @@ if __name__ == "__main__":
             np.savez("./results/BasicBangBangTh", x = pC.get_t(), y = pC.get_th_sensor())
             np.savez("./results/BasicBangBangTc", x = pC.get_t(), y = pC.get_tc_sensor())
             np.savez("./results/BasicBangBangV",  x = pC.get_t(), y = pC.get_v_arr())
+        if not pC.is_steady_state():
+            print("Need sim to run for longer!")
+            assert pC.is_steady_state()
+
+    if pid_repro:
+        pC = PlantCircuit("Detector", None, Signal.VOLTAGE)
+        cbs = CircularBufferSequencer([50.00], pC.get_ncs())
+        pidc = PIDController(cbs, 15.00, 0.00, 0.00)
+        pC.set_controller_f(pidc.controller_f)
+        pC.run_sim()
+        if plot_not_save:
+            pC.plot_th_tc(IndVar.TIME)
+            plt.show()
+        else:
+            # TODO: Change to np.save and change names to camelcase
+            np.savez("./results/PIDTh", x = pC.get_t(), y = pC.get_th_sensor())
+            np.savez("./results/PIDTc", x = pC.get_t(), y = pC.get_tc_sensor())
+            np.savez("./results/PIDV",  x = pC.get_t(), y = pC.get_v_arr())
         if not pC.is_steady_state():
             print("Need sim to run for longer!")
             assert pC.is_steady_state()
