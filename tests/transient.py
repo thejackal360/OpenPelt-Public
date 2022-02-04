@@ -12,9 +12,11 @@ TEST_NAME = "transient"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
+    plate_select = bessel.TECPlate.HOT_SIDE
     pC = bessel.plant_circuit("Detector",
                               lambda t , Th_arr : 2.1@u_A,
-                              bessel.Signal.CURRENT)
+                              bessel.Signal.CURRENT,
+                              plate_select)
     start_t = time.time()
     pC.run_sim()
     end_t = time.time()

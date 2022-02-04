@@ -12,11 +12,13 @@ TEST_NAME = "transient"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
+    plate_select = bessel.TECPlate.HOT_SIDE
     pC = bessel.plant_circuit("Detector",
                               lambda t, Th_arr: 0.0@u_V,
-                              bessel.Signal.VOLTAGE)
+                              bessel.Signal.VOLTAGE,
+                              plate_select=plate_select)
     pC.run_sim()
-    pC.plot_th_tc(bessel.IndVar.TIME)
+    pC.plot_th_tc(bessel.IndVar.TIME, plot_driver = False)
     plt.savefig('./figs/{}'.format(TEST_NAME))
     data = numpy.array([pC.get_t(), pC.get_th_sensor()])
     numpy.save("./results/{}_time_th_volt".format(TEST_NAME), data)

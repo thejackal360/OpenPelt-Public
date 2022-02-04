@@ -5,6 +5,7 @@
 from abc import ABC, abstractmethod
 
 import os
+import random
 import numpy as np
 
 import cffi
@@ -52,6 +53,18 @@ K_CONINT = 3.1
 
 def K_to_C(T_in_C):
     return T_in_C - 273.15
+
+
+def seed_everything(seed=1234):
+    random.seed(seed)
+    tseed = random.randint(1, 1E6)
+    tcseed = random.randint(1, 1E6)
+    npseed = random.randint(1, 1E6)
+    ospyseed = random.randint(1, 1E6)
+    torch.manual_seed(tseed)
+    torch.cuda.manual_seed_all(tcseed)
+    np.random.seed(npseed)
+    os.environ['PYTHONHASHSEED'] = str(ospyseed)
 
 # Classes
 
@@ -142,6 +155,7 @@ class neural_controller(controller):
                                        T_ref]).astype('f'))
         self.t_ref = torch.tensor([T_ref], requires_grad=True)
         self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
+        # self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
 
         self.optimizer.zero_grad()
         yc = self.net(x)

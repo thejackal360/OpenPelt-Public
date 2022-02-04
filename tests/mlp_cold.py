@@ -11,10 +11,12 @@ TEST_NAME = "mlp_cold"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
-    pC = bessel.plant_circuit("Detector", None, bessel.Signal.VOLTAGE)
+    bessel.seed_everything(7777)
+    plate_select = bessel.TECPlate.COLD_SIDE
+    pC = bessel.plant_circuit("Detector", None, bessel.Signal.VOLTAGE, plate_select=plate_select)
     cbs = bessel.circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs())
-    pidc = bessel.pid_controller(cbs, -30.00, -0.0007, -0.10, bessel.TECPlate.COLD_SIDE)
-    pC.set_controller_f(pidc.controller_f)
+    nc = bessel.neural_controller(cbs, hidden_units = 6, lrate = 0.01, plate_select=plate_select)
+    pC.set_controller_f(nc.controller_f)
     pC.run_sim()
     pC.plot_th_tc(bessel.IndVar.TIME, plot_driver = False, include_ref = True)
     plt.savefig('./figs/{}'.format(TEST_NAME))

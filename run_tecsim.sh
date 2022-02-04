@@ -18,6 +18,9 @@ then
 elif [ "$1" == "mlp_hot" ]
 then
     var="mlp_hot.py"
+elif [ "$1" == "mlp_cold" ]
+then
+    var="mlp_cold.py"
 elif [ "$1" == "transient" ]
 then
     var="transient.py"
