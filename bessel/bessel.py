@@ -155,29 +155,17 @@ class neural_controller(controller):
                                        T_ref]).astype('f'))
         self.t_ref = torch.tensor([T_ref], requires_grad=True)
         self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
-        # self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
-
         self.optimizer.zero_grad()
         yc = self.net(x)
-        # print(self.z.shape, self.t_ref.shape)
         loss = self.criterion(self.z, self.t_ref)
-        # loss = self.criterion(yc, self.v)
         loss.backward()
         self.optimizer.step()
-
-        # print("Target: %f, Pred: %f" % (self.v.item(), yc.item()))
-        # yc = yc.detach().cpu().numpy()[-1] @ u_V
         self.loss_.append(loss.item())
         return yc
 
     def _controller_f(self, t, ref, sensor_dict):
         yc = self.learn(sensor_dict["th"][-1], sensor_dict["tc"][-1], self.ref)
         return yc.detach().cpu().numpy()[-1] @ u_V
-        # x = torch.from_numpy(np.array([sensor_dict["th"],
-        #                                sensor_dict["tc"],
-        #                                ref]).astype('f'))
-        # yc = self.net(x)
-        # return np.round(yc.detach().cpu().numpy()[-1], 2)[0]
 
 class bang_bang_controller(controller):
 
