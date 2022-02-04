@@ -146,7 +146,6 @@ class neural_controller(controller):
         self.optimizer.zero_grad()
         yc = self.net(x)
         # print(self.z.shape, self.t_ref.shape)
-        print("T_ref = {}, self.t_ref = {}, T_hot = {}, T_cold = {}".format(T_ref, self.t_ref, T_hot, T_cold))
         loss = self.criterion(self.z, self.t_ref)
         # loss = self.criterion(yc, self.v)
         loss.backward()
@@ -155,7 +154,6 @@ class neural_controller(controller):
         # print("Target: %f, Pred: %f" % (self.v.item(), yc.item()))
         # yc = yc.detach().cpu().numpy()[-1] @ u_V
         self.loss_.append(loss.item())
-        print("yc = {}".format(yc))
         return yc
 
     def _controller_f(self, t, ref, sensor_dict):
@@ -206,6 +204,7 @@ class pid_controller(controller):
 
 
 class plant_circuit(Circuit):
+
     def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE, plate_select = TECPlate.HOT_SIDE):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
@@ -365,6 +364,7 @@ class plant_circuit(Circuit):
 
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
+
     def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1000, plate_select = TECPlate.HOT_SIDE, **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
@@ -417,9 +417,6 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.tc_sensor_error = [abs(x) < ERR_TOL for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
-        print("t : {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real,
-                                                round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS),
-                                                round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS)))
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
