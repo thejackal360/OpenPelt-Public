@@ -2,15 +2,16 @@ import numpy as np
 import matplotlib.pylab as plt
 from sklearn.model_selection import train_test_split
 
-from neural_controller import neural_controller
+from neural_nets import MLP
+from torch import nn
 
 
 if __name__ == '__main__':
     batch_size = 1
     epochs = 25
 
-    v, tc = np.load("results/volt_tc_characterization.npy").astype('f')
-    v, th = np.load("results/volt_th_characterization.npy").astype('f')
+    v, tc = np.load("results/op_point_voltage_volt_tc_characterization.npy").astype('f')
+    v, th = np.load("results/op_point_voltage_volt_th_characterization.npy").astype('f')
     size = min(len(tc), len(th))
     t_ref = np.linspace(0, 10, size).astype('f')
 
@@ -31,7 +32,14 @@ if __name__ == '__main__':
     loss_track, acc_track = [], []
     for e in range(epochs):
         for i in range(X_train.shape[0]):
-            nc.learn(X_train[i, 1], X_train[i, 0], X_train[i, 2], y_train[i])
+            x = torch.from_numpy(np.array([X_train[i, 1],
+                                           X_train[i, 0],
+                                           X_train[i, 2]]).astype('f'))
+            self.t_ref = torch.tensor([T_ref], requires_grad=True)
+            self.z = torch.tensor([T_hot], requires_grad=True)
+
+            self.optimizer.zero_grad()
+            yc = self.net(x)
         if e % 1 == 0:
             acc = 0.0
             for j in range(X_test.shape[0]):

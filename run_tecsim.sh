@@ -15,6 +15,9 @@ then
 elif [ "$1" == "pid_hot" ]
 then
     var="pid_hot.py"
+elif [ "$1" == "mlp_hot" ]
+then
+    var="mlp_hot.py"
 elif [ "$1" == "transient" ]
 then
     var="transient.py"

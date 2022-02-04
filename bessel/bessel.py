@@ -14,11 +14,17 @@ from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
+import torch
+from torch import nn
+from torch.optim import Adam, SGD
+
+from .neural_nets import MLP
+
 # Simulation Parameters
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 10000.00
+SIMULATION_TIME_IN_SEC = 5000.00 # 10000.00
 ROUND_DIGITS = 3
 ERR_TOL = 0.15
 
@@ -104,6 +110,62 @@ class controller(ABC):
     def _controller_f(self, t, ref, sensor_dict):
         pass
 
+
+class neural_controller(controller):
+
+    def __init__(self,
+                 seqr,
+                 plate_select,
+                 input_units=3,
+                 hidden_units=5,
+                 bias=True,
+                 lrate=0.01):
+        adam = True
+        self.seqr = seqr
+        self.plate_select = plate_select
+        self.net = MLP(hidden_units=hidden_units, bias=bias)
+        if adam:
+            self.optimizer = Adam(self.net.parameters(),
+                                  lr=lrate,
+                                  weight_decay=1e-4)
+        else:
+            self.optimizer = SGD(self.net.parameters(),
+                                 lr=lrate,
+                                 weight_decay=1e-4,
+                                 momentum=0.9)
+        self.criterion = nn.MSELoss()
+        self.loss_ = []
+
+    def learn(self, T_hot, T_cold, T_ref):
+        x = torch.from_numpy(np.array([T_hot,
+                                       T_cold,
+                                       T_ref]).astype('f'))
+        self.t_ref = torch.tensor([T_ref], requires_grad=True)
+        self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
+
+        self.optimizer.zero_grad()
+        yc = self.net(x)
+        # print(self.z.shape, self.t_ref.shape)
+        print("T_ref = {}, self.t_ref = {}, T_hot = {}, T_cold = {}".format(T_ref, self.t_ref, T_hot, T_cold))
+        loss = self.criterion(self.z, self.t_ref)
+        # loss = self.criterion(yc, self.v)
+        loss.backward()
+        self.optimizer.step()
+
+        # print("Target: %f, Pred: %f" % (self.v.item(), yc.item()))
+        # yc = yc.detach().cpu().numpy()[-1] @ u_V
+        self.loss_.append(loss.item())
+        print("yc = {}".format(yc))
+        return yc
+
+    def _controller_f(self, t, ref, sensor_dict):
+        yc = self.learn(sensor_dict["th"][-1], sensor_dict["tc"][-1], self.ref)
+        return yc.detach().cpu().numpy()[-1] @ u_V
+        # x = torch.from_numpy(np.array([sensor_dict["th"],
+        #                                sensor_dict["tc"],
+        #                                ref]).astype('f'))
+        # yc = self.net(x)
+        # return np.round(yc.detach().cpu().numpy()[-1], 2)[0]
 
 class bang_bang_controller(controller):
 
@@ -355,6 +417,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.tc_sensor_error = [abs(x) < ERR_TOL for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
+        print("t : {}, Th : {}, Tc : {}".format(actual_vector_values['time'].real,
+                                                round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS),
+                                                round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS)))
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
