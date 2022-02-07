@@ -21,11 +21,12 @@ from torch.optim import Adam, SGD
 
 from .neural_nets import MLP
 
+
 # Simulation Parameters
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 5000.00 # 10000.00
+SIMULATION_TIME_IN_SEC = 10000.00
 ROUND_DIGITS = 3
 ERR_TOL = 0.15
 
@@ -77,7 +78,7 @@ class Signal(Enum):
 class TECPlate(Enum):
     HOT_SIDE = 1
     COLD_SIDE = 2
-    
+
 
 class IndVar(Enum):
     VOLTAGE = 1
@@ -133,39 +134,86 @@ class neural_controller(controller):
                  hidden_units=5,
                  bias=True,
                  lrate=0.01):
-        adam = True
+        adam = False
         self.seqr = seqr
         self.plate_select = plate_select
+
         self.net = MLP(hidden_units=hidden_units, bias=bias)
+        self.target_net = MLP(hidden_units=hidden_units, bias=bias)
+
         if adam:
             self.optimizer = Adam(self.net.parameters(),
                                   lr=lrate,
-                                  weight_decay=1e-4)
+                                  weight_decay=1e-3)
+            self.optimizer_target = Adam(self.target_net.parameters(),
+                                         lr=0.1,
+                                         weight_decay=1e-6)
         else:
             self.optimizer = SGD(self.net.parameters(),
                                  lr=lrate,
                                  weight_decay=1e-4,
                                  momentum=0.9)
-        self.criterion = nn.MSELoss()
-        self.loss_ = []
+        # self.criterion = nn.MSELoss()
+        self.criterion = nn.L1Loss()
+        self.timer = 0
+        self.train_times = [i for i in range(0, 50000, 500)]
+
+    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
+        x_std = (x - var[0]) / (var[1] - var[0])
+        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
+                    feature_range[0])
+        return x_scaled
 
     def learn(self, T_hot, T_cold, T_ref):
+        # T_hot = self.scale(T_hot)
+        # T_cold = self.scale(T_cold)
+        # T_ref = self.scale(T_ref)
+
         x = torch.from_numpy(np.array([T_hot,
                                        T_cold,
                                        T_ref]).astype('f'))
-        self.t_ref = torch.tensor([T_ref], requires_grad=True)
+        self.t_ref = torch.tensor([T_ref])
         self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
+
         self.optimizer.zero_grad()
+
         yc = self.net(x)
+
         loss = self.criterion(self.z, self.t_ref)
         loss.backward()
         self.optimizer.step()
-        self.loss_.append(loss.item())
+
+        print("REF: %f, TC: %f, TH: %f, Z: %f, L: %f YC: %f" % (T_ref,
+                                                                T_cold,
+                                                                T_hot,
+                                                                self.z,
+                                                                loss.item(),
+                                                                yc))
+        return yc
+
+    def infer(self, T_hot, T_cold, T_ref):
+        x = torch.from_numpy(np.array([T_hot,
+                                       T_cold,
+                                       T_ref]).astype('f'))
+        self.t_ref = torch.tensor([T_ref])
+        yc = self.net(x)
         return yc
 
     def _controller_f(self, t, ref, sensor_dict):
-        yc = self.learn(sensor_dict["th"][-1], sensor_dict["tc"][-1], self.ref)
-        return yc.detach().cpu().numpy()[-1] @ u_V
+        if self.timer > 1:
+            yc = self.learn(sensor_dict["th"][-2],
+                            sensor_dict["tc"][-2],
+                            self.ref)
+        # else:
+        #     yc = self.infer(sensor_dict["th"][-1],
+        #                     sensor_dict["tc"][-1],
+        #                     self.ref)
+            yc = yc.detach().cpu().numpy()[-1]
+        else:
+            yc = 10 @ u_V
+        self.timer += 1
+        return yc @ u_V
+
 
 class bang_bang_controller(controller):
 
@@ -207,7 +255,11 @@ class pid_controller(controller):
 
 class plant_circuit(Circuit):
 
-    def __init__(self, name, controller_f, sig_type=Signal.VOLTAGE, plate_select = TECPlate.HOT_SIDE):
+    def __init__(self,
+                 name,
+                 controller_f,
+                 sig_type=Signal.VOLTAGE,
+                 plate_select=TECPlate.HOT_SIDE):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
@@ -367,7 +419,12 @@ class plant_circuit(Circuit):
 
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
 
-    def __init__(self, controller_f, ref = 0.00, steady_state_cycles = 1000, plate_select = TECPlate.HOT_SIDE, **kwargs):
+    def __init__(self,
+                 controller_f,
+                 ref=0.00,
+                 steady_state_cycles=2500,
+                 plate_select=TECPlate.HOT_SIDE,
+                 **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
         PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()

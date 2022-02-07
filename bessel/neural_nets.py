@@ -1,6 +1,5 @@
-import torch
 from torch import nn
-from torch.optim import Adam, SGD
+
 
 class MLP(nn.Module):
     def __init__(self, input_units=3, hidden_units=4, bias=True):
@@ -14,14 +13,14 @@ class MLP(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
 
-        self.init(init_method="uniform")
+        self.init(init_method="xavier")
 
     def init(self, init_method="uniform"):
         if init_method == "xavier":
             nn.init.xavier_uniform_(self.fc1.weight.data,
-                                    gain=nn.init.calculate_gain('relu'))
+                                    gain=nn.init.calculate_gain('tanh'))
             nn.init.xavier_uniform_(self.fc2.weight.data,
-                                    gain=nn.init.calculate_gain('relu'))
+                                    gain=1.0)
         else:
             nn.init.uniform_(self.fc1.weight.data, a=-.4, b=.4)
             nn.init.uniform_(self.fc2.weight.data, a=-.4, b=.4)
@@ -31,6 +30,6 @@ class MLP(nn.Module):
 
     def forward(self, x):
         """ forward """
-        out = self.relu(self.fc1(x))
-        out = 30.00 * self.tanh(self.fc2(out))
+        out = self.tanh(self.fc1(x))
+        out = self.fc2(out)
         return out
