@@ -20,6 +20,7 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from .neural_nets import MLP
+import itertools
 
 
 # Simulation Parameters
@@ -125,94 +126,72 @@ class controller(ABC):
         pass
 
 
-class neural_controller(controller):
+class rl_controller(controller):
 
     def __init__(self,
-                 seqr,
-                 plate_select,
-                 input_units=3,
-                 hidden_units=5,
-                 bias=True,
-                 lrate=0.01):
-        adam = False
-        self.seqr = seqr
-        self.plate_select = plate_select
+                 observation_space_d=1331,
+                 action_space_d=25,
+                 alpha=0.1,
+                 gamma=0.1,
+                 epsilon=0.1):
+        self.n_states = observation_space_d
+        self.n_actions = action_space_d
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
 
-        self.net = MLP(hidden_units=hidden_units, bias=bias)
-        self.target_net = MLP(hidden_units=hidden_units, bias=bias)
+        self.q_table = np.zeros((observation_space_d, action_space_d))
 
-        if adam:
-            self.optimizer = Adam(self.net.parameters(),
-                                  lr=lrate,
-                                  weight_decay=1e-3)
-            self.optimizer_target = Adam(self.target_net.parameters(),
-                                         lr=0.1,
-                                         weight_decay=1e-6)
+        list1 = [-50 + i for i in range(0, 110, 10)]
+        self.hash = [(x, y, z) for x, y, z in itertools.product(list1,
+                                                                list1,
+                                                                list1)]
+
+    def init_q_table(self):
+        self.q_table = np.zeros((self.n_states, self.n_actions))
+
+    def epsilon_greedy(self):
+        if np.random.uniform(0, 1) < self.epsilon:
+            action = self.sample_action()
         else:
-            self.optimizer = SGD(self.net.parameters(),
-                                 lr=lrate,
-                                 weight_decay=1e-4,
-                                 momentum=0.9)
-        # self.criterion = nn.MSELoss()
-        self.criterion = nn.L1Loss()
-        self.timer = 0
-        self.train_times = [i for i in range(0, 50000, 500)]
+            action = np.argmax(self.q_table[self.state])
+        return action
 
-    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
-        x_std = (x - var[0]) / (var[1] - var[0])
-        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
-                    feature_range[0])
-        return x_scaled
+    def sample_action(self):
+        action = np.random.randint(0, self.n_actions)
+        return action
 
-    def learn(self, T_hot, T_cold, T_ref):
-        # T_hot = self.scale(T_hot)
-        # T_cold = self.scale(T_cold)
-        # T_ref = self.scale(T_ref)
-
-        x = torch.from_numpy(np.array([T_hot,
-                                       T_cold,
-                                       T_ref]).astype('f'))
-        self.t_ref = torch.tensor([T_ref])
-        self.z = torch.tensor([T_cold if self.plate_select == TECPlate.COLD_SIDE else T_hot], requires_grad=True)
-
-        self.optimizer.zero_grad()
-
-        yc = self.net(x)
-
-        loss = self.criterion(self.z, self.t_ref)
-        loss.backward()
-        self.optimizer.step()
-
-        print("REF: %f, TC: %f, TH: %f, Z: %f, L: %f YC: %f" % (T_ref,
-                                                                T_cold,
-                                                                T_hot,
-                                                                self.z,
-                                                                loss.item(),
-                                                                yc))
-        return yc
-
-    def infer(self, T_hot, T_cold, T_ref):
-        x = torch.from_numpy(np.array([T_hot,
-                                       T_cold,
-                                       T_ref]).astype('f'))
-        self.t_ref = torch.tensor([T_ref])
-        yc = self.net(x)
-        return yc
-
-    def _controller_f(self, t, ref, sensor_dict):
-        if self.timer > 1:
-            yc = self.learn(sensor_dict["th"][-2],
-                            sensor_dict["tc"][-2],
-                            self.ref)
-        # else:
-        #     yc = self.infer(sensor_dict["th"][-1],
-        #                     sensor_dict["tc"][-1],
-        #                     self.ref)
-            yc = yc.detach().cpu().numpy()[-1]
+    def state_to_index(self, s):
+        if s in self.hash:
+            return self.hash.index(s)
         else:
-            yc = 10 @ u_V
-        self.timer += 1
-        return yc @ u_V
+            return np.random.randint(self.n_states)
+
+    def index_to_state(self, index):
+        return self.hash[index]
+
+    def get_next_state(self):
+        pass
+
+    def reward(self, x, x_ref):
+        x = self.index_to_state(x)
+        return (x_ref - x)**2
+
+    def q_learning(self, x, ref):
+        x = self.state_to_index(x)
+        self.action = self.epsilon_greed()
+
+        next_state = self.get_next_state(self.action)
+        r = self.reward(next_state, ref)
+
+        q_old = self.q_table[self.state, self.action]
+        next_max = np.max(self.q_table[next_state])
+
+        q_new = ((1 - self.alpha) * q_old + self.alpha * (r + self.gamma *
+                 next_max))
+        self.q_table[self.state, self.action] = q_new
+
+        self.state = next_state
 
 
 class bang_bang_controller(controller):
@@ -235,13 +214,15 @@ class pid_controller(controller):
         self.kp = kp
         self.ki = ki
         self.kd = kd
-        self.dt = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC * SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))
+        self.dt = (1.00/(TEMP_SENSOR_SAMPLES_PER_SEC
+                   * SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))
         self.prev_err = 0
         self.integral = 0
         self.plate_select = plate_select
 
     def _controller_f(self, t, ref, sensor_dict):
-        error = ref - sensor_dict["th" if self.plate_select == TECPlate.HOT_SIDE else "tc"][-1]
+        error = ref - sensor_dict["th" if self.plate_select
+                                  == TECPlate.HOT_SIDE else "tc"][-1]
         proportional = error
         self.integral = self.integral + (error * self.dt)
         derivative = (error - self.prev_err) / self.dt
