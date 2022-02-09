@@ -17,7 +17,7 @@ if __name__ == "__main__":
                               None,
                               bessel.Signal.VOLTAGE,
                               plate_select=plate_select)
-    cbs = bessel.circular_buffer_sequencer([25.00],
+    cbs = bessel.circular_buffer_sequencer([30.00],
                                            pC.get_ncs())
     nc = bessel.dqn_controller(cbs,
                                gamma=0.999)

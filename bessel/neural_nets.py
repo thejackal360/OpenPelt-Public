@@ -17,8 +17,9 @@ class MLP(nn.Module):
         self.fc3 = nn.Linear(hidden_units, output_units, bias=self.bias)
 
         self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
 
-        self.init(init_method="xavier")
+        self.init(init_method="uniform")
 
     def init(self, init_method="uniform"):
         if init_method == "xavier":
@@ -28,9 +29,9 @@ class MLP(nn.Module):
                                     gain=nn.init.calculate_gain('relu'))
             nn.init.xavier_uniform_(self.fc3.weight.data)
         else:
-            nn.init.uniform_(self.fc1.weight.data, a=-.4, b=.4)
-            nn.init.uniform_(self.fc2.weight.data, a=-.4, b=.4)
-            nn.init.uniform_(self.fc3.weight.data, a=-.4, b=.4)
+            nn.init.uniform_(self.fc1.weight.data, a=-.01, b=.01)
+            nn.init.uniform_(self.fc2.weight.data, a=-.01, b=.01)
+            nn.init.uniform_(self.fc3.weight.data, a=-.01, b=.01)
 
     def forward(self, x):
         """ forward """

@@ -28,7 +28,7 @@ from .neural_nets import MLP, Transition, ReplayMemory
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
 SIMULATION_TIME_IN_SEC = 1500.00
-ROUND_DIGITS = 3
+ROUND_DIGITS = 1
 ERR_TOL = 0.15
 
 COLD_SIDE_NODE = 5
@@ -54,7 +54,7 @@ K_CONINT = 3.1
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
-TARGET_UPDATE = 20
+TARGET_UPDATE = 10
 
 
 # Auxiliary Functions
@@ -137,21 +137,19 @@ class dqn_controller(controller):
 
     def __init__(self,
                  seqr,
-                 observation_space_d=1030301,
-                 action_space_d=25,
+                 action_space_d=19,
                  gamma=0.999):
         self.seqr = seqr
-        self.n_states = observation_space_d
         self.n_actions = action_space_d
         self.gamma = gamma
-        self.volt = [-12.0 + i for i in range(0, action_space_d, 1)]
+        self.volt = [-6.0 + i for i in range(0, action_space_d, 1)]
 
         self.policy_net = MLP(input_units=3,
-                              hidden_units=32,
+                              hidden_units=64,
                               output_units=self.n_actions,
                               bias=True)
         self.target_net = MLP(input_units=3,
-                              hidden_units=32,
+                              hidden_units=64,
                               output_units=self.n_actions,
                               bias=True)
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -165,6 +163,7 @@ class dqn_controller(controller):
         self.iter = 1
         self.done = False
         self.t_prev = True
+        self.device = torch.device("cpu")
 
     def select_action(self, state):
         sample = random.random()
@@ -178,6 +177,12 @@ class dqn_controller(controller):
             return torch.tensor([[random.randrange(self.n_actions)]],
                                 dtype=torch.long)
 
+    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
+        x_std = (x - var[0]) / (var[1] - var[0])
+        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
+                    feature_range[0])
+        return x_scaled
+
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
             return
@@ -187,6 +192,7 @@ class dqn_controller(controller):
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.next_state)),
+                                      device=self.device,
                                       dtype=torch.bool)
         non_final_next_states = torch.cat([s for s in batch.next_state
                                            if s is not None])
@@ -197,7 +203,7 @@ class dqn_controller(controller):
 
         state_action_values = self.policy_net(state_batch).gather(1,
                                                                   action_batch)
-        next_state_values = torch.zeros(self.batch_size)
+        next_state_values = torch.zeros(self.batch_size, device=self.device)
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
 
         expected_state_action_values = (next_state_values * self.gamma) + reward_batch
@@ -212,27 +218,38 @@ class dqn_controller(controller):
         self.optimizer.step()
 
     def reward_(self, x, x_ref):
-        if torch.abs(x_ref - x[0, 0]) <= 0.5:
-            return torch.tensor([0.0])
+        if x is None:
+            return 0
         else:
-            return torch.tensor([-1.0])
-        # return -(x_ref - x[0, 0])[0]**2
+            return -(x_ref - x[0, 0])[0]**2
 
     def dql_train(self, x, ref):
         ref = torch.tensor(ref).view(-1, 1)
-        if self.t_prev is True:
+        if self.done:
             self.state = torch.tensor(x.copy()).view(1, 3)
             self.action = self.select_action(self.state)
+
+        if self.t_prev is True and self.done is False:
+            self.state = torch.tensor(x.copy()).view(1, 3)
+            self.action = self.select_action(self.state)
+            self.r = self.reward_(self.state, ref)
             self.t_prev = False
-            if np.abs(x[0] - ref) < 0.1:
+            if np.abs(x[0] - ref) <= 0.9:
                 self.done = True
             else:
                 self.done = False
-        else:
+        elif self.done is False:
+            self.action = self.select_action(self.state)
+            self.r = self.reward_(self.state, ref)
+            if np.abs(x[0] - ref) <= 0.9:
+                self.done = True
+            else:
+                self.done = False
+
             if not self.done:
                 self.next_state = torch.tensor(x.copy()).view(1, 3)
-
-            self.r = self.reward_(self.next_state, ref)
+            else:
+                self.next_state = None
 
             self.memory.push(self.state,
                              self.action,
@@ -247,13 +264,12 @@ class dqn_controller(controller):
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
             self.iter += 1
-            self.t_prev = True
         return self.volt[self.action.item()] @ u_V
 
     def _controller_f(self, t, ref, sensor_dict):
-        state = [sensor_dict['th'][-1],
-                 sensor_dict['tc'][-1],
-                 ref]
+        th = sensor_dict['th'][-1]
+        tc = sensor_dict['tc'][-1]
+        state = [th, tc, ref]
         v = self.dql_train(state, ref)
         print("Th: %f, Tc: %f, REF: %f, V: %f" % (state[0],
                                                   state[1],
@@ -471,7 +487,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def __init__(self,
                  controller_f,
                  ref=0.00,
-                 steady_state_cycles=2500,
+                 steady_state_cycles=1000,
                  plate_select=TECPlate.HOT_SIDE,
                  **kwargs):
         # Temporary workaround:
