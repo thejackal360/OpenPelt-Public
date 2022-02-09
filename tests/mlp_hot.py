@@ -17,12 +17,10 @@ if __name__ == "__main__":
                               None,
                               bessel.Signal.VOLTAGE,
                               plate_select=plate_select)
-    cbs = bessel.circular_buffer_sequencer([50.00, 30.00],
+    cbs = bessel.circular_buffer_sequencer([25.00],
                                            pC.get_ncs())
-    nc = bessel.neural_controller(cbs,
-                                  hidden_units=6,
-                                  lrate=0.5,
-                                  plate_select=plate_select)
+    nc = bessel.dqn_controller(cbs,
+                               gamma=0.999)
     pC.set_controller_f(nc.controller_f)
 
     pC.run_sim()

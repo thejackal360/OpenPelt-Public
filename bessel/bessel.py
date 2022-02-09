@@ -5,29 +5,29 @@
 from abc import ABC, abstractmethod
 
 import os
+import math
 import random
-import numpy as np
+import itertools
 
 import cffi
 from enum import Enum
 import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit
-from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
+from PySpice.Unit import u_V, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
+import numpy as np
 import torch
 from torch import nn
-from torch.optim import Adam, SGD
+from torch.optim import RMSprop
 
-from .neural_nets import MLP
-import itertools
-
+from .neural_nets import MLP, Transition, ReplayMemory
 
 # Simulation Parameters
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 10000.00
+SIMULATION_TIME_IN_SEC = 1500.00
 ROUND_DIGITS = 3
 ERR_TOL = 0.15
 
@@ -49,6 +49,13 @@ K_M = 1.768
 C_C = 2.00
 C_CONINT = 304.00
 K_CONINT = 3.1
+
+# RL constants
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 200
+TARGET_UPDATE = 20
+
 
 # Auxiliary Functions
 
@@ -126,72 +133,133 @@ class controller(ABC):
         pass
 
 
-class rl_controller(controller):
+class dqn_controller(controller):
 
     def __init__(self,
-                 observation_space_d=1331,
+                 seqr,
+                 observation_space_d=1030301,
                  action_space_d=25,
-                 alpha=0.1,
-                 gamma=0.1,
-                 epsilon=0.1):
+                 gamma=0.999):
+        self.seqr = seqr
         self.n_states = observation_space_d
         self.n_actions = action_space_d
-        self.alpha = alpha
         self.gamma = gamma
-        self.epsilon = epsilon
+        self.volt = [-12.0 + i for i in range(0, action_space_d, 1)]
 
-        self.q_table = np.zeros((observation_space_d, action_space_d))
+        self.policy_net = MLP(input_units=3,
+                              hidden_units=32,
+                              output_units=self.n_actions,
+                              bias=True)
+        self.target_net = MLP(input_units=3,
+                              hidden_units=32,
+                              output_units=self.n_actions,
+                              bias=True)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.target_net.eval()
 
-        list1 = [-50 + i for i in range(0, 110, 10)]
-        self.hash = [(x, y, z) for x, y, z in itertools.product(list1,
-                                                                list1,
-                                                                list1)]
+        self.optimizer = RMSprop(self.policy_net.parameters())
+        self.criterion = nn.SmoothL1Loss()
+        self.memory = ReplayMemory(100000)
+        self.steps_done = 0
+        self.batch_size = 16
+        self.iter = 1
+        self.done = False
+        self.t_prev = True
 
-    def init_q_table(self):
-        self.q_table = np.zeros((self.n_states, self.n_actions))
-
-    def epsilon_greedy(self):
-        if np.random.uniform(0, 1) < self.epsilon:
-            action = self.sample_action()
+    def select_action(self, state):
+        sample = random.random()
+        eps_threshold = (EPS_END + (EPS_START - EPS_END) *
+                         math.exp(-1. * self.steps_done / EPS_DECAY))
+        self.steps_done += 1
+        if sample > eps_threshold:
+            with torch.no_grad():
+                return self.policy_net(state).max(1)[1].view(1, 1)
         else:
-            action = np.argmax(self.q_table[self.state])
-        return action
+            return torch.tensor([[random.randrange(self.n_actions)]],
+                                dtype=torch.long)
 
-    def sample_action(self):
-        action = np.random.randint(0, self.n_actions)
-        return action
+    def optimize_model(self):
+        if len(self.memory) < self.batch_size:
+            return
+        transitions = self.memory.sample(self.batch_size)
 
-    def state_to_index(self, s):
-        if s in self.hash:
-            return self.hash.index(s)
+        batch = Transition(*zip(*transitions))
+
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                                batch.next_state)),
+                                      dtype=torch.bool)
+        non_final_next_states = torch.cat([s for s in batch.next_state
+                                           if s is not None])
+
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+
+        state_action_values = self.policy_net(state_batch).gather(1,
+                                                                  action_batch)
+        next_state_values = torch.zeros(self.batch_size)
+        next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
+
+        expected_state_action_values = (next_state_values * self.gamma) + reward_batch
+
+        loss = self.criterion(state_action_values,
+                              expected_state_action_values.unsqueeze(1))
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        for param in self.policy_net.parameters():
+            param.grad.data.clamp_(-1, 1)
+        self.optimizer.step()
+
+    def reward_(self, x, x_ref):
+        if torch.abs(x_ref - x[0, 0]) <= 0.5:
+            return torch.tensor([0.0])
         else:
-            return np.random.randint(self.n_states)
+            return torch.tensor([-1.0])
+        # return -(x_ref - x[0, 0])[0]**2
 
-    def index_to_state(self, index):
-        return self.hash[index]
+    def dql_train(self, x, ref):
+        ref = torch.tensor(ref).view(-1, 1)
+        if self.t_prev is True:
+            self.state = torch.tensor(x.copy()).view(1, 3)
+            self.action = self.select_action(self.state)
+            self.t_prev = False
+            if np.abs(x[0] - ref) < 0.1:
+                self.done = True
+            else:
+                self.done = False
+        else:
+            if not self.done:
+                self.next_state = torch.tensor(x.copy()).view(1, 3)
 
-    def get_next_state(self):
-        pass
+            self.r = self.reward_(self.next_state, ref)
 
-    def reward(self, x, x_ref):
-        x = self.index_to_state(x)
-        return (x_ref - x)**2
+            self.memory.push(self.state,
+                             self.action,
+                             self.next_state,
+                             self.r)
 
-    def q_learning(self, x, ref):
-        x = self.state_to_index(x)
-        self.action = self.epsilon_greed()
+            self.state = self.next_state
 
-        next_state = self.get_next_state(self.action)
-        r = self.reward(next_state, ref)
+            self.optimize_model()
 
-        q_old = self.q_table[self.state, self.action]
-        next_max = np.max(self.q_table[next_state])
+            if self.iter % TARGET_UPDATE == 0:
+                self.target_net.load_state_dict(self.policy_net.state_dict())
 
-        q_new = ((1 - self.alpha) * q_old + self.alpha * (r + self.gamma *
-                 next_max))
-        self.q_table[self.state, self.action] = q_new
+            self.iter += 1
+            self.t_prev = True
+        return self.volt[self.action.item()] @ u_V
 
-        self.state = next_state
+    def _controller_f(self, t, ref, sensor_dict):
+        state = [sensor_dict['th'][-1],
+                 sensor_dict['tc'][-1],
+                 ref]
+        v = self.dql_train(state, ref)
+        print("Th: %f, Tc: %f, REF: %f, V: %f" % (state[0],
+                                                  state[1],
+                                                  state[2],
+                                                  v))
+        return v @ u_V
 
 
 class bang_bang_controller(controller):
