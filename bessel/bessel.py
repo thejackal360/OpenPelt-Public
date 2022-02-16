@@ -37,6 +37,9 @@ HOT_SIDE_NODE = 4
 
 INPUT_SRC = 'input_src'
 
+# RANDOM SEED
+DEFAULT_SEED = 7777
+
 # Detector Circuit Parameters
 
 TAMB = 296.4
@@ -75,6 +78,8 @@ def seed_everything(seed=1234):
     torch.cuda.manual_seed_all(tcseed)
     np.random.seed(npseed)
     os.environ['PYTHONHASHSEED'] = str(ospyseed)
+
+seed_everything(DEFAULT_SEED)
 
 # Classes
 
