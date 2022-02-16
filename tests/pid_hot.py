@@ -12,7 +12,7 @@ if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
-    pC = OpenPelt.plant_circuit("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
+    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs())
     pidc = OpenPelt.pid_controller(cbs, 8.00, 0.00, 0.00, plate_select=plate_select)
     pC.set_controller_f(pidc.controller_f)

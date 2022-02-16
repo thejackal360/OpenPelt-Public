@@ -16,6 +16,8 @@ from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
+from fenics import Constant, SubDomain, near
+
 import numpy as np
 import torch
 from torch import nn
@@ -31,6 +33,9 @@ SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
 SIMULATION_TIME_IN_SEC = 3000.00
 ROUND_DIGITS = 1
 ERR_TOL = 0.15
+
+FENICS_TOL = 1e-14
+CERAMIC_K  = 3.8
 
 COLD_SIDE_NODE = 5
 HOT_SIDE_NODE = 4
@@ -497,11 +502,16 @@ class pid_controller(controller):
         return output
 
 
+class BottomBoundary(SubDomain):
+    def inside(self, x, on_boundary):
+        return on_boundary and near(x[1], -0.002, FENICS_TOL)
+
+
 """
-plant_circuit class, inherits from PySpice's Circuit object. Meant to be
+tec_plant class, inherits from PySpice's Circuit object. Meant to be
 a electro-thermal circuit model of a TEC-based mid-IR detector cooler.
 """
-class plant_circuit(Circuit):
+class tec_plant(Circuit):
 
     """
     Instantiate circuit with controller algorithm, whose function is
@@ -548,6 +558,24 @@ class plant_circuit(Circuit):
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
+        # Fenics initialization code
+        self.subdomain = BottomBoundary()
+        self.n = 0
+        self.u_D = Constant(self.vals[self.n])
+
+    """
+    Do not call until after you've run a transient simulation. Coupling to the 3D Fenics model is not yet
+    supported.
+    """
+    def time_update(self):
+        if self.plate_select == TECPlate.HOT_SIDE:
+            self.u_D.assign(self.ncs.get_th_sensor()[self.n])
+        else:
+            self.u_D.assign(self.ncs.get_tc_sensor()[self.n])
+        self.n += 1
+
+    def get_k_val(self):
+        return CERAMIC_K
 
     """
     Set hot plate or cold plate to be controlled.

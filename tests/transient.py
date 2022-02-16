@@ -13,7 +13,7 @@ if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
-    pC = OpenPelt.plant_circuit("Detector",
+    pC = OpenPelt.tec_plant("Detector",
                               lambda t , Th_arr : 2.1@u_A,
                               OpenPelt.Signal.CURRENT,
                               plate_select)

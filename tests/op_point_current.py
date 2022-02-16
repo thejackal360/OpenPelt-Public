@@ -12,7 +12,7 @@ TEST_NAME = "op_point_current"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
-    pC = OpenPelt.plant_circuit("Detector",
+    pC = OpenPelt.tec_plant("Detector",
                               lambda : 2.1@u_A,
                               OpenPelt.Signal.CURRENT)
     pC.characterize_plant(-6.00@u_A, 6.00@u_A, 0.01@u_A)

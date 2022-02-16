@@ -15,7 +15,7 @@ if __name__ == "__main__":
     OpenPelt.seed_everything(7777)
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE
-    pC = OpenPelt.plant_circuit("Detector",
+    pC = OpenPelt.tec_plant("Detector",
                               None,
                               OpenPelt.Signal.VOLTAGE,
                               plate_select=plate_select)

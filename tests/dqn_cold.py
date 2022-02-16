@@ -13,7 +13,7 @@ if __name__ == "__main__":
         os.mkdirs('./results/')
     OpenPelt.seed_everything(7777)
     plate_select = OpenPelt.TECPlate.COLD_SIDE
-    pC = OpenPelt.plant_circuit("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
+    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs())
     nc = OpenPelt.neural_controller(cbs, hidden_units = 6, lrate = 0.01, plate_select=plate_select)
     pC.set_controller_f(nc.controller_f)
