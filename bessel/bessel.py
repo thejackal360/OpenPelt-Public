@@ -63,11 +63,16 @@ TARGET_UPDATE = 50
 
 # Auxiliary Functions
 
+"""
+Convert temperature in kelvin to temperature in celsius.
+"""
+def K_to_C(T_in_K):
+    return T_in_K - 273.15
 
-def K_to_C(T_in_C):
-    return T_in_C - 273.15
 
-
+"""
+Set random seed.
+"""
 def seed_everything(seed=1234):
     random.seed(seed)
     tseed = random.randint(1, 1E6)
@@ -83,37 +88,66 @@ seed_everything(DEFAULT_SEED)
 
 # Classes
 
-
+"""
+Used to select between voltage or current signal type.
+"""
 class Signal(Enum):
     VOLTAGE = 1
     CURRENT = 2
 
-
+"""
+Used to select hot or cold plate on TEC.
+"""
 class TECPlate(Enum):
     HOT_SIDE = 1
     COLD_SIDE = 2
 
 
+"""
+Used to select independent variable for SPICE tests
+"""
 class IndVar(Enum):
     VOLTAGE = 1
     CURRENT = 2
     TIME = 3
 
 
+"""
+Abstract class for generating sequences of reference values to test
+controllers.
+"""
 class sequencer(ABC):
 
+    """
+    Abstract method intended to return next reference value in the sequence
+    """
     @abstractmethod
     def get_ref(self):
         pass
 
 
+"""
+Circular buffer sequence that inherits from abstract sequencer class.
+"""
 class circular_buffer_sequencer(sequencer):
 
+    """
+    Initialize sequencer. Need to have some connection to ngspice_custom_lib
+    since that (a) specifies the TEC plate in use and (b) we need to set the
+    reference there.
+
+    ngspice_custom_lib is of the class type tec_lib.
+    """
     def __init__(self, sequence, ngspice_custom_lib):
         self.sequence = sequence
         self.sequence_idx = 0
         self.ngspice_custom_lib = ngspice_custom_lib
 
+    """
+    Get the reference value from the circular buffer sequence. Also sets
+    the reference value in self.ngspice_custom_lib, intended to be of
+    the class type tec_lib.
+    """
     def get_ref(self):
         if self.ngspice_custom_lib.is_steady_state():
             if self.sequence_idx == len(self.sequence) - 1:
@@ -125,20 +159,40 @@ class circular_buffer_sequencer(sequencer):
         return self.sequence[self.sequence_idx]
 
 
+"""
+Abstract controller class. Used for implementing things like PID controllers.
+"""
 class controller(ABC):
 
+    """
+    Set the sequencer in use. Intended to be an instance of a subclass of
+    sequencer.
+    """
     def set_seqr(self, seqr):
         self.seqr = seqr
 
+    """
+    Function called on each timestep to get the controller output. Output
+    is interpreted as either a current or voltage, but this is not the
+    responsibility of the controller class to specify.
+
+    t is the current timestep. sensor_dict maps "th" or "tc" strings to
+    an array of historical values of hot side and cold side temperatures.
+    """
     def controller_f(self, t, sensor_dict):
         self.ref = self.seqr.get_ref()
         return self._controller_f(t, self.ref, sensor_dict)
 
+    """
+    Abstract method called by controller_f. Reference value is explicitly
+    specified here. This function is internal to the abstract controller class.
+    """
     @abstractmethod
     def _controller_f(self, t, ref, sensor_dict):
         pass
 
 
+# TODO
 class dqn_controller(controller):
 
     def __init__(self,
@@ -381,11 +435,21 @@ class random_controller(controller):
         return v @ u_V
 
 
+"""
+Bang-bang controller implementation. Inherits from abstract controller class.
+"""
 class bang_bang_controller(controller):
 
+    """
+    Initialize controller. Need to specify reference value sequencer instance.
+    """
     def __init__(self, seqr):
         self.seqr = seqr
 
+    """
+    Bang-bang controller function. Check most recent hot plate temperature
+    and drive 14.00 (usually volts) if below ref.
+    """
     def _controller_f(self, t, ref, sensor_dict):
         if sensor_dict["th"][-1] < ref:
             return 14.00
@@ -393,8 +457,16 @@ class bang_bang_controller(controller):
             return 0.00
 
 
+"""
+PID controller implementation. Inherits from abstract controller class.
+"""
 class pid_controller(controller):
 
+    """
+    Initialize controller. Specify proportional gain kp, integral gain ki,
+    differential gain kd, and selected plate (plate_select). Need to specify
+    reference value sequencer instance as well
+    """
     def __init__(self, seqr, kp, ki, kd, plate_select):
         # https://en.wikipedia.org/wiki/PID_controller
         self.seqr = seqr
@@ -407,6 +479,9 @@ class pid_controller(controller):
         self.integral = 0
         self.plate_select = plate_select
 
+    """
+    Clamp outputs at 16.00 at the high end and -6.00 at the low end.
+    """
     def _controller_f(self, t, ref, sensor_dict):
         error = ref - sensor_dict["th" if self.plate_select
                                   == TECPlate.HOT_SIDE else "tc"][-1]
@@ -422,8 +497,19 @@ class pid_controller(controller):
         return output
 
 
+"""
+plant_circuit class, inherits from PySpice's Circuit object. Meant to be
+a electro-thermal circuit model of a TEC-based mid-IR detector cooler.
+"""
 class plant_circuit(Circuit):
 
+    """
+    Instantiate circuit with controller algorithm, whose function is
+    specified by controller_f.
+
+    sig_type specifies whether we're driving a voltage or a current from
+    the controller.
+    """
     def __init__(self,
                  name,
                  controller_f,
@@ -463,20 +549,45 @@ class plant_circuit(Circuit):
         else:
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
 
+    """
+    Set hot plate or cold plate to be controlled.
+    """
     def set_plate_select(self, plate_select):
         self.plate_select = plate_select
         self.ncs.set_plate_select(self.plate_select)
 
+    """
+    Set the controller function.
+    """
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
         self.ncs.set_controller_f(self.controller_f)
 
+    """
+    Get the underlying tec_lib object that directly interfaces with
+    ngspice library using PySpice.
+    """
     def get_ncs(self):
         return self.ncs
 
+    """
+    Clear tec_lib object.
+    """
     def clear(self):
         self.ncs.clear()
 
+    """
+    Plot hot side and cold side temperatures of TEC.
+
+    ivar specifies the independent variable (time for transient sim,
+    voltage/current for DC sweep sims).
+
+    plot_driver enables plotting the driving voltage/current.
+
+    include_ref enables plotting the reference temperature. Depending on
+    how the sequencer is configured, this may change throughout a transient
+    sim.
+    """
     def plot_th_tc(self, ivar, plot_driver = True, include_ref = False):
         fig = plt.figure()
         ax = fig.add_subplot()
@@ -538,31 +649,63 @@ class plant_circuit(Circuit):
 
         ax.legend(fontsize=16)
 
+    """
+    Get array of timesteps.
+    """
     def get_t(self):
         return self.ncs.get_t()
 
+    """
+    Get array of hot plate temperatures.
+    """
     def get_th_actual(self):
         return self.ncs.get_th_actual()
 
+    """
+    Get array of cold plate temperatures.
+    """
     def get_tc_actual(self):
         return self.ncs.get_tc_actual()
 
+    """
+    Get array of hot plate temperatures read by sensor. Sensor only reads
+    periodically depending on the value of the TEMP_SENSOR_SAMPLES_PER_SEC
+    constant.
+    """
     def get_th_sensor(self):
         return self.ncs.get_th_sensor()
 
+    """
+    Get array of cold plate temperatures read by sensor. Sensor only reads
+    periodically depending on the value of the TEMP_SENSOR_SAMPLES_PER_SEC
+    constant.
+    """
     def get_tc_sensor(self):
         return self.ncs.get_tc_sensor()
 
+    """
+    Get array of driving voltages. Undefined behavior if current selected.
+    """
     def get_v_arr(self):
         return self.ncs.get_v_arr()
 
+    """
+    Get array of driving currents. Undefined behavior if voltage selected.
+    """
     def get_i_arr(self):
         return self.ncs.get_i_arr()
 
+    """
+    Return simulator object that uses tec_lib ngspice shared library object.
+    """
     def _simulator(self):
         return self.simulator(simulator='ngspice-shared',
                               ngspice_shared=self.ncs)
 
+    """
+    Run a transient simulation. Returns [V_final, Th_final, Tc_final].
+    Behavior undefined for current driver simulation.
+    """
     def run_sim(self):
         sim = self._simulator()
         sim.options(reltol=5e-6)
@@ -575,6 +718,10 @@ class plant_circuit(Circuit):
         V_final = self.get_v_arr()[-1]
         return V_final, Th_final, Tc_final
 
+    """
+    Acts as a DC sweep function. May contain errors since behavior is not
+    validated.
+    """
     def characterize_plant(self, val_min, val_max, step_size):
         sim = self.simulator(simulator='ngspice-shared',
                              ngspice_shared=self.ncs)
@@ -584,12 +731,23 @@ class plant_circuit(Circuit):
         else:
             anls = sim.dc(Iinput_src=slice(val_min, val_max, step_size))
 
+    """
+    Have we reached steady state? Only useful for running transient simulations.
+    """
     def is_steady_state(self):
         return self.ncs.is_steady_state()
 
-
+"""
+Class that inherits from PySpice's NgSpiceShared class. Abstracts ngspice
+details from the rest of the library.
+"""
 class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
 
+    """
+    Initialize tec_lib. steady_state_cycles defines the number of
+    cycles for which values must be nearly constant before considering
+    system to be in steady state.
+    """
     def __init__(self,
                  controller_f,
                  ref=0.00,
@@ -620,21 +778,39 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.tc_sensor_window = []
         self.tc_sensor_error = []
 
+    """
+    Return array of reference values over time.
+    """
     def get_ref_arr(self):
         return self.ref_arr
 
+    """
+    Get current reference value.
+    """
     def get_ref(self):
         return self.ref
 
+    """
+    Get the current selected plate for control, either hot side or cold side.
+    """
     def get_plate_select(self):
         return self.plate_select
 
+    """
+    Set the plate to be controlled, either hot side or cold side.
+    """
     def set_plate_select(self, plate_select):
         self.plate_select = plate_select
 
+    """
+    Define the controller function.
+    """
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
 
+    """
+    Set the reference and plate to be controlled.
+    """
     def set_ref(self, ref, plate_select):
         self.ref = ref
         self.plate_select = plate_select
@@ -646,6 +822,10 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.th_sensor_error = [abs(x) < ERR_TOL for x in self.th_sensor_window]
             self.tc_sensor_error = [abs(x) < ERR_TOL for x in self.tc_sensor_window]
 
+    """
+    Function that determines how to collect data from each timestep of ngspice
+    simulation.
+    """
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
             self.th_sensor.append(
@@ -698,6 +878,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.ref_arr.append(self.ref)
         return 0
 
+    """
+    Clear data in all arrays.
+    """
     def clear(self):
         self.t = []
         self.th_actual = []
@@ -710,35 +893,67 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.next_v = 0.00
         self.next_i = 0.00
 
+    """
+    Get current timestep.
+    """
     def get_t(self):
         return self.t
 
+    """
+    Get current hot plate temperature.
+    """
     def get_th_actual(self):
         return self.th_actual
 
+    """
+    Get current cold plate temperature.
+    """
     def get_tc_actual(self):
         return self.tc_actual
 
+    """
+    Get current hot plate sensor reading.
+    """
     def get_th_sensor(self):
         return self.th_sensor
 
+    """
+    Get current cold plate sensor reading.
+    """
     def get_tc_sensor(self):
         return self.tc_sensor
 
+    """
+    Get array of driving voltages throughout sim. Undefined behavior for
+    current driving sims.
+    """
     def get_v_arr(self):
         return self.v
 
+    """
+    Get array of driving currents throughout sim. Undefined behavior for
+    voltage driving sims.
+    """
     def get_i_arr(self):
         return self.i
 
+    """
+    Set external voltage source driving value in the ngspice circuit.
+    """
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         voltage[0] = self.next_v
         return 0
 
+    """
+    Set external current source driving value in the ngspice circuit.
+    """
     def get_isrc_data(self, current, time, node, ngspice_id):
         current[0] = self.next_i
         return 0
 
+    """
+    Check if system has hit steady state.
+    """
     def is_steady_state(self):
         if self.plate_select == TECPlate.HOT_SIDE:
             if len(self.th_sensor_error) < self.steady_state_cycles:
