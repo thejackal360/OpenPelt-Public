@@ -561,17 +561,21 @@ class tec_plant(Circuit):
         # Fenics initialization code
         self.subdomain = BottomBoundary()
         self.n = 0
-        self.u_D = Constant(self.vals[self.n])
+        self.u_D = Constant(K_to_C(TAMB))
 
     """
     Do not call until after you've run a transient simulation. Coupling to the 3D Fenics model is not yet
     supported.
     """
     def time_update(self):
+        th_sensor_arr = self.ncs.get_th_sensor()
+        assert self.n < len(th_sensor_arr)
+        tc_sensor_arr = self.ncs.get_tc_sensor()
+        assert self.n < len(tc_sensor_arr)
         if self.plate_select == TECPlate.HOT_SIDE:
-            self.u_D.assign(self.ncs.get_th_sensor()[self.n])
+            self.u_D.assign(th_sensor_arr[self.n])
         else:
-            self.u_D.assign(self.ncs.get_tc_sensor()[self.n])
+            self.u_D.assign(tc_sensor_arr[self.n])
         self.n += 1
 
     def get_k_val(self):

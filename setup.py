@@ -2,9 +2,9 @@
 
 from distutils.core import setup
 
-setup(name = 'bessel',
+setup(name = 'OpenPelt',
       version = 'alpha',
-      description = 'bessel Control System library',
+      description = 'OpenPelt TEC modeling library',
       author = 'Georgios Detorakis, Roman Parise',
-      packages = ['bessel'],
+      packages = ['OpenPelt'],
      )

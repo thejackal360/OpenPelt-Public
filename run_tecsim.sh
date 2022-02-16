@@ -33,6 +33,9 @@ then
 elif [ "$1" == "random_cold" ]
 then
     var="random_cold.py"
+elif [ "$1" == "fenics_heat_eqn" ]
+then
+    var="fenics_heat_eqn.py"
 else
     echo "No script found!"
     exit
