@@ -34,7 +34,7 @@ Thermoelectric coolers (TECs) are semiconductor heat pumps used in various appli
 For instance, when heat sinking and fans will not suffice in electronics cooling
 applications, a TEC can be used as an alternative. Similarly, TECs can be used
 to cool down mid-infrared LEDs for use in lasers and volatile organic compound
-detectors.
+detectors [@MansourPaper].
 
 Designing TEC-based temperature control systems involves overcoming two primary
 challenges. One of these is hardware design. The other is control algorithm
@@ -56,7 +56,7 @@ To our knowledge, no out-of-the-box, open source solution for TEC controller sim
 exists. This is partly due to the lack of a usable open source model of a
 thermoelectric cooler and the lack of open source software to simulate it.
 We investigated the literature and found an electro-thermal circuit model
-of a TEC. Though the SPICE netlist is publicly available, there is no straightforward
+of a TEC [@848895]. Though the SPICE netlist is publicly available, there is no straightforward
 approach for simulating a traditional, let alone novel, control algorithm.
 
 We developed a methodology for control algorithm and buried the implementation
@@ -72,7 +72,7 @@ was broken. We fixed the bug, thereby enabling such sources.
 We felt it was critical that users be able to write high-level, object-oriented
 code and use it to interact with the TEC model. We used the PySpice library
 as a wrapper around ngspice to export the simulator's shared library
-functionality to Python.
+functionality to Python [@PySpice].
 
 We default the tec_plant model parameters, such as thermal capacitance
 and resistance values, to the values in the original paper. However, users
@@ -100,11 +100,11 @@ various gas concentrations, humidity levels, and temperature to be controlled.
 The tec_plant model also supports three-dimensional finite element simulation
 as well. Class methods enable the user to incorporate the results of the
 controller simulation into a three-dimensional model described using the Fenics
-library. Thus, users can see how the TEC interacts with more complex systems.
+library [@LoggEtal2012, @LoggWells2010]. Thus, users can see how the TEC interacts with more complex systems.
 
 # Sample Results
 We reproduced figure 11 from the original paper using OpenPelt and a controller
-that drives a constant 2.1A current.
+that drives a constant 2.1A current [@848895].
 
 <div style="text-align:center">![](./figs/transient.png)</div>
 
