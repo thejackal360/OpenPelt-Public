@@ -18,9 +18,9 @@ import PySpice.Spice.NgSpice.Shared
 
 try:
     from fenics import Constant, SubDomain, near
-    INCLUDE_FENICS = true
+    INCLUDE_FENICS = True
 except ImportError:
-    INCLUDE_FENICS = false
+    INCLUDE_FENICS = False
     print("Warning: Cannot import fenics")
 
 import numpy as np
