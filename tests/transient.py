@@ -11,7 +11,7 @@ TEST_NAME = "transient"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector",
                               lambda t , Th_arr : 2.1@u_A,
@@ -31,4 +31,4 @@ if __name__ == "__main__":
     numpy.save('./results/{}_time_tc_sensor_curr'.format(TEST_NAME), data)
     data = numpy.array([pC.get_t(), pC.get_i_arr()])
     numpy.save('./results/{}_time_i_curr'.format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))

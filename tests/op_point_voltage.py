@@ -11,7 +11,7 @@ TEST_NAME = "op_point_voltage"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     pC = OpenPelt.tec_plant("Detector",
                               lambda : 0.00@u_V,
                               OpenPelt.Signal.CURRENT)
@@ -22,4 +22,4 @@ if __name__ == "__main__":
     numpy.save("./results/{}_volt_th_characterization".format(TEST_NAME), data)
     data = numpy.array([pC.get_v_arr(), pC.get_tc_actual()])
     numpy.save("./results/{}_volt_tc_characterization".format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))

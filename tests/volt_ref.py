@@ -7,11 +7,11 @@ from PySpice.Unit import u_V
 import time
 import numpy
 
-TEST_NAME = "transient"
+TEST_NAME = "volt_ref"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector",
                               lambda t, Th_arr: 0.0@u_V,
@@ -26,4 +26,4 @@ if __name__ == "__main__":
     numpy.save("./results/{}_time_tc_volt".format(TEST_NAME), data)
     data = numpy.array([pC.get_t(), pC.get_v_arr()])
     numpy.save("./results/{}_time_volt".format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))

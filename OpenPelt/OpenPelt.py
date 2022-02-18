@@ -16,7 +16,12 @@ from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
-from fenics import Constant, SubDomain, near
+try:
+    from fenics import Constant, SubDomain, near
+    INCLUDE_FENICS = true
+except ImportError:
+    INCLUDE_FENICS = false
+    print("Warning: Cannot import fenics")
 
 import numpy as np
 import torch
@@ -570,9 +575,10 @@ class tec_plant(Circuit):
         else:
             self.I(INPUT_SRC, self.gnd, '11', 'dc 0 external')
         # Fenics initialization code
-        self.subdomain = BottomBoundary()
-        self.n = 0
-        self.u_D = Constant(K_to_C(_tamb))
+        if INCLUDE_FENICS:
+            self.subdomain = BottomBoundary()
+            self.n = 0
+            self.u_D = Constant(K_to_C(_tamb))
 
     """
     Do not call until after you've run a transient simulation. Coupling to the 3D Fenics model is not yet

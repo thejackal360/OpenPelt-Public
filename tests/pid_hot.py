@@ -10,7 +10,7 @@ TEST_NAME = "pid_hot"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs())
@@ -25,4 +25,4 @@ if __name__ == "__main__":
     numpy.save('./results/{}_time_tc_sensor_curr'.format(TEST_NAME), data)
     data = numpy.array([pC.get_t(), pC.get_v_arr()])
     numpy.save('./results/{}_time_v_curr'.format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))

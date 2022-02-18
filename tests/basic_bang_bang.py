@@ -10,7 +10,7 @@ TEST_NAME = "basic_bang_bang"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00], pC.get_ncs())
     bbc = OpenPelt.bang_bang_controller(cbs)
@@ -24,4 +24,4 @@ if __name__ == "__main__":
     numpy.save('./results/{}_time_tc_sensor_curr'.format(TEST_NAME), data)
     data = numpy.array([pC.get_t(), pC.get_i_arr()])
     numpy.save('./results/{}_time_i_curr'.format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))

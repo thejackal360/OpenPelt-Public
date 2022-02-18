@@ -6,12 +6,11 @@ import OpenPelt
 import numpy
 from torch import save, tensor
 
-
 TEST_NAME = "dqn_hot"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
-        os.mkdirs('./results/')
+        os.makedirs('./results/')
     OpenPelt.seed_everything(7777)
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE
@@ -35,4 +34,4 @@ if __name__ == "__main__":
     numpy.save('./results/{}_time_tc_sensor_curr'.format(TEST_NAME), data)
     data = numpy.array([pC.get_t(), pC.get_v_arr()])
     numpy.save('./results/{}_time_v_curr'.format(TEST_NAME), data)
-    plt.show()
+    plt.savefig('./results/{}'.format(TEST_NAME))
