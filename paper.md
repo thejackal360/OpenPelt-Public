@@ -30,7 +30,7 @@ results to Fenics to view the control system's impact on a three-dimensional
 system.
 
 # Statement of need
-Thermoelectric coolers (TECs) are semiconductor heat pumps used in various applications.
+Thermoelectric coolers (TECs) are semiconductor heat pumps used in various applications [@CHEIN20042207].
 For instance, when heat sinking and fans will not suffice in electronics cooling
 applications, a TEC can be used as an alternative. Similarly, TECs can be used
 to cool down mid-infrared LEDs for use in lasers and volatile organic compound
