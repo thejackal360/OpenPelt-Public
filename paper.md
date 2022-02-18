@@ -100,7 +100,7 @@ various gas concentrations, humidity levels, and temperature to be controlled.
 The tec_plant model also supports three-dimensional finite element simulation
 as well. Class methods enable the user to incorporate the results of the
 controller simulation into a three-dimensional model described using the Fenics
-library [@LoggEtal2012, @LoggWells2010]. Thus, users can see how the TEC interacts with more complex systems.
+library [@LoggEtal2012][@LoggWells2010]. Thus, users can see how the TEC interacts with more complex systems.
 
 # Sample Results
 We reproduced figure 11 from the original paper using OpenPelt and a controller
