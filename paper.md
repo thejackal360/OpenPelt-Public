@@ -115,12 +115,3 @@ temperatures in a test sequence.
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
 
 # References
-- PySpice
-- TEC model
-- Fenics
-
-PySpice
-(https://www.sciencedirect.com/science/article/abs/pii/S1359431104000675)
-(https://www.researchgate.net/publication/3389182_Mid-infrared_interband_cascade_lasers_at_thermoelectric_cooler_temperatures)
-(http://ngspice.sourceforge.net/docs/ngspice-manual.pdf)
-(Bug fix - https://sourceforge.net/u/thejackal360/ngspice/ci/276a456659aa276a30140b59eff39ececdaaadb1/)

@@ -11,6 +11,8 @@ TEST_NAME = "dqn_hot"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
+    if not os.path.exists('./figs/'):
+        os.makedirs('./figs/')
     OpenPelt.seed_everything(7777)
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE

@@ -11,6 +11,8 @@ TEST_NAME = "dqn_cold"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
+    if not os.path.exists('./figs/'):
+        os.makedirs('./figs/')
     OpenPelt.seed_everything(7777)
     plate_select = OpenPelt.TECPlate.COLD_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)

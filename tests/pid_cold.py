@@ -11,6 +11,8 @@ TEST_NAME = "pid_cold"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
+    if not os.path.exists('./figs/'):
+        os.makedirs('./figs/')
     plate_select = OpenPelt.TECPlate.COLD_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00, 20.00, 25.00, 30.00], pC.get_ncs())

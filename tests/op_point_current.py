@@ -12,6 +12,8 @@ TEST_NAME = "op_point_current"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
+    if not os.path.exists('./figs/'):
+        os.makedirs('./figs/')
     pC = OpenPelt.tec_plant("Detector",
                               lambda : 2.1@u_A,
                               OpenPelt.Signal.CURRENT)

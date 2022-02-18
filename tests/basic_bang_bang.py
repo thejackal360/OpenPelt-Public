@@ -11,6 +11,8 @@ TEST_NAME = "basic_bang_bang"
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
+    if not os.path.exists('./figs/'):
+        os.makedirs('./figs/')
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00], pC.get_ncs())
     bbc = OpenPelt.bang_bang_controller(cbs)
