@@ -23,6 +23,7 @@ affiliations:
    index: 3
 date: 13 August 2017
 bibliography: paper.bib
+nocite: '@*'
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
