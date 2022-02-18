@@ -507,9 +507,10 @@ class pid_controller(controller):
         return output
 
 
-class BottomBoundary(SubDomain):
-    def inside(self, x, on_boundary):
-        return on_boundary and near(x[1], -0.002, FENICS_TOL)
+if INCLUDE_FENICS:
+    class BottomBoundary(SubDomain):
+        def inside(self, x, on_boundary):
+            return on_boundary and near(x[1], -0.002, FENICS_TOL)
 
 
 """
@@ -528,6 +529,8 @@ class tec_plant(Circuit):
     def __init__(self,
                  name,
                  controller_f,
+                 sig_type=Signal.VOLTAGE,
+                 plate_select=TECPlate.HOT_SIDE,
                  _k_rad = K_RAD,
                  _c_rad = C_RAD,
                  _k_sil = K_SIL,
@@ -538,9 +541,7 @@ class tec_plant(Circuit):
                  _k_conint = K_CONINT,
                  _rp = RP,
                  _se = SE,
-                 _tamb = TAMB,
-                 sig_type=Signal.VOLTAGE,
-                 plate_select=TECPlate.HOT_SIDE):
+                 _tamb = TAMB):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
