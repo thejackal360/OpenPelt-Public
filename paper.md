@@ -105,11 +105,12 @@ library. Thus, users can see how the TEC interacts with more complex systems.
 We reproduced figure 11 from the original paper using OpenPelt and a controller
 that drives a constant 2.1A current.
 
+<div style="text-align:center">![](./figs/transient.png)</div>
+
+We have also developed PID controllers using OpenPelt.
+
 <div style="text-align:center">![](./figs/pid_hot.png)</div>
-
-# Figures
-
-# Acknowledgements
+<div style="text-align:center">![](./figs/pid_cold.png)</div>
 
 # References
 - PySpice
