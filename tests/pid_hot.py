@@ -17,7 +17,7 @@ if __name__ == "__main__":
     pidc = OpenPelt.pid_controller(cbs, 15.00, 0.00, 0.00, plate_select=plate_select)
     pC.set_controller_f(pidc.controller_f)
     pC.run_sim()
-    pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
+    pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = True, include_ref = True)
     plt.savefig('./figs/{}'.format(TEST_NAME))
     data = numpy.array([pC.get_t(), pC.get_th_sensor()])
     numpy.save('./results/{}_time_th_sensor_curr'.format(TEST_NAME), data)
