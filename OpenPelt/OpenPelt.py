@@ -523,32 +523,43 @@ class tec_plant(Circuit):
     def __init__(self,
                  name,
                  controller_f,
+                 _k_rad = K_RAD,
+                 _c_rad = C_RAD,
+                 _k_sil = K_SIL,
+                 _c_h = C_H,
+                 _c_c = C_C,
+                 _k_m = K_M,
+                 _c_conint = C_CONINT,
+                 _k_conint = K_CONINT,
+                 _rp = RP,
+                 _se = SE,
+                 _tamb = TAMB,
                  sig_type=Signal.VOLTAGE,
                  plate_select=TECPlate.HOT_SIDE):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
         # HEAT SINK
-        self.V('1', '3', self.gnd, TAMB @ u_V)
-        self.R('1', '4', '3', K_RAD @ u_Ohm)
-        self.C('1', '4', self.gnd, C_RAD@u_F, initial_condition=TAMB@u_V)
-        self.R('2', '4', '1', K_SIL@u_Ohm)
+        self.V('1', '3', self.gnd, _tamb @ u_V)
+        self.R('1', '4', '3', _k_rad @ u_Ohm)
+        self.C('1', '4', self.gnd, _c_rad@u_F, initial_condition=_tamb@u_V)
+        self.R('2', '4', '1', _k_sil@u_Ohm)
         # THERMAL PELTIER MODEL
-        self.C('2', '1', '0', C_H@u_F, initial_condition=TAMB@u_V)
+        self.C('2', '1', '0', _c_h@u_F, initial_condition=_tamb@u_V)
         self.BehavioralSource('1', self.gnd, '1',
-                              i='((v(13) - v(12))/{})*(((v(13) - v(12))/{})*{}+{}*(v(1)-v(2)))'.format(RP, RP, RP, SE))
-        self.R('3', '1', '2', K_M@u_Ohm)
+                              i='((v(13) - v(12))/{})*(((v(13) - v(12))/{})*{}+{}*(v(1)-v(2)))'.format(_rp, _rp, _rp, _se))
+        self.R('3', '1', '2', _k_m@u_Ohm)
         self.BehavioralSource('2', '2', '1',
-                              i='((v(13) - v(12))/{})*({}*v(2)-0.9*((v(13) - v(12))/{}))'.format(RP, SE, RP))
-        self.C('3', '2', self.gnd, C_C@u_F, initial_condition=TAMB@u_V)
+                              i='((v(13) - v(12))/{})*({}*v(2)-0.9*((v(13) - v(12))/{}))'.format(_rp, _se, _rp))
+        self.C('3', '2', self.gnd, _c_c@u_F, initial_condition=_tamb@u_V)
         # THERMAL MASS
-        self.R('4', '5', '2', K_SIL@u_Ohm)
-        self.C('4', '5', self.gnd, C_CONINT@u_F, initial_condition=TAMB@u_V)
-        self.R('5', '5', '3', K_CONINT@u_Ohm)
+        self.R('4', '5', '2', _k_sil@u_Ohm)
+        self.C('4', '5', self.gnd, _c_conint@u_F, initial_condition=_tamb@u_V)
+        self.R('5', '5', '3', _k_conint@u_Ohm)
         # ELECTRICAL PELTIER MODEL
         self.V('2', '11', '13', 0.00@u_V)
         self.R('6', '13', '12', RP@u_Ohm)
-        self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=SE)
+        self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=_se)
         # EXTERNAL SOURCE
         self.plate_select = plate_select
         self.ncs = tec_lib(self.controller_f,
@@ -561,7 +572,7 @@ class tec_plant(Circuit):
         # Fenics initialization code
         self.subdomain = BottomBoundary()
         self.n = 0
-        self.u_D = Constant(K_to_C(TAMB))
+        self.u_D = Constant(K_to_C(_tamb))
 
     """
     Do not call until after you've run a transient simulation. Coupling to the 3D Fenics model is not yet
