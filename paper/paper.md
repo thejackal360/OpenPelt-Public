@@ -102,7 +102,10 @@ controller simulation into a three-dimensional model described using the Fenics
 library. Thus, users can see how the TEC interacts with more complex systems.
 
 # Sample Results
-(Reproduce results of transient sim from paper)
+We reproduced figure 11 from the original paper using OpenPelt and a controller
+that drives a constant 2.1A current.
+
+(pid_hot.png)
 
 # Figures
 
