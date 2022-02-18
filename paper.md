@@ -107,7 +107,9 @@ that drives a constant 2.1A current.
 
 <div style="text-align:center">![](./figs/transient.png)</div>
 
-We have also developed PID controllers using OpenPelt.
+We have also developed proportional temperature controllers using OpenPelt.
+OpenPelt provides functionality for cycling through different reference
+temperatures in a test sequence.
 
 <div style="text-align:center">![](./figs/pid_hot.png)</div>
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
