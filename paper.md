@@ -106,6 +106,7 @@ We reproduced figure 11 from the original paper using OpenPelt and a controller
 that drives a constant 2.1A current.
 
 (pid_hot.png)
+![](../fig/pid_hot.png)
 
 # Figures
 
