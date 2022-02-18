@@ -113,5 +113,3 @@ temperatures in a test sequence.
 
 <div style="text-align:center">![](./figs/pid_hot.png)</div>
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
-
-# References
