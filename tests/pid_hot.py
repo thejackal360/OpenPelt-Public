@@ -14,7 +14,7 @@ if __name__ == "__main__":
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00, 40.00], pC.get_ncs())
-    pidc = OpenPelt.pid_controller(cbs, 8.00, 0.00, 0.00, plate_select=plate_select)
+    pidc = OpenPelt.pid_controller(cbs, 15.00, 0.00, 0.00, plate_select=plate_select)
     pC.set_controller_f(pidc.controller_f)
     pC.run_sim()
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
