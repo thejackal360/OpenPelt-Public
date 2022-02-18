@@ -116,21 +116,7 @@ that drives a constant 2.1A current.
 - TEC model
 - Fenics
 
-@software{PySpice,
-  author = {Fabrice Salvaire}, % actual author and maintainer
-  title = {PySpice},
-  url = {https://pyspice.fabrice-salvaire.fr},
-  version = {x.y},
-  date = {yyyy-mm-dd}, % set to the release date
-}
-
-@Misc{PySpice,
-  author = {Fabrice Salvaire},
-  title = {PySpice},
-  howpublished = {\url{https://pyspice.fabrice-salvaire.fr}},
-  year = {yyyy}
-}
-
+PySpice
 (https://www.sciencedirect.com/science/article/abs/pii/S1359431104000675)
 (https://www.researchgate.net/publication/3389182_Mid-infrared_interband_cascade_lasers_at_thermoelectric_cooler_temperatures)
 (http://ngspice.sourceforge.net/docs/ngspice-manual.pdf)
