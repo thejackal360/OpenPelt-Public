@@ -105,33 +105,13 @@ library. Thus, users can see how the TEC interacts with more complex systems.
 We reproduced figure 11 from the original paper using OpenPelt and a controller
 that drives a constant 2.1A current.
 
-(pid_hot.png)
+<div style="text-align:center">![](./figs/transient.png)</div>
 
-# Figures
+We have also developed proportional temperature controllers using OpenPelt.
+OpenPelt provides functionality for cycling through different reference
+temperatures in a test sequence.
 
-# Acknowledgements
+<div style="text-align:center">![](./figs/pid_hot.png)</div>
+<div style="text-align:center">![](./figs/pid_cold.png)</div>
 
-# References
-- PySpice
-- TEC model
-- Fenics
-
-@software{PySpice,
-  author = {Fabrice Salvaire}, % actual author and maintainer
-  title = {PySpice},
-  url = {https://pyspice.fabrice-salvaire.fr},
-  version = {x.y},
-  date = {yyyy-mm-dd}, % set to the release date
-}
-
-@Misc{PySpice,
-  author = {Fabrice Salvaire},
-  title = {PySpice},
-  howpublished = {\url{https://pyspice.fabrice-salvaire.fr}},
-  year = {yyyy}
-}
-
-(https://www.sciencedirect.com/science/article/abs/pii/S1359431104000675)
-(https://www.researchgate.net/publication/3389182_Mid-infrared_interband_cascade_lasers_at_thermoelectric_cooler_temperatures)
-(http://ngspice.sourceforge.net/docs/ngspice-manual.pdf)
-(Bug fix - https://sourceforge.net/u/thejackal360/ngspice/ci/276a456659aa276a30140b59eff39ececdaaadb1/)
+# Bibliography
