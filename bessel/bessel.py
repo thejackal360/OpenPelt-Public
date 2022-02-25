@@ -19,7 +19,8 @@ import PySpice.Spice.NgSpice.Shared
 import numpy as np
 import torch
 from torch import nn
-from torch.optim import RMSprop
+from torch.optim import RMSprop, Adam
+from torch.utils.tensorboard import SummaryWriter
 
 from .neural_nets import MLP, Transition, ReplayMemory
 
@@ -27,7 +28,7 @@ from .neural_nets import MLP, Transition, ReplayMemory
 
 TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 1500.00
+SIMULATION_TIME_IN_SEC = 3000.00
 ROUND_DIGITS = 1
 ERR_TOL = 0.15
 
@@ -54,7 +55,7 @@ K_CONINT = 3.1
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 200
-TARGET_UPDATE = 10
+TARGET_UPDATE = 50
 
 
 # Auxiliary Functions
@@ -137,33 +138,59 @@ class dqn_controller(controller):
 
     def __init__(self,
                  seqr,
-                 action_space_d=19,
+                 n_actions=23,
                  gamma=0.999):
         self.seqr = seqr
-        self.n_actions = action_space_d
+        self.n_actions = n_actions
         self.gamma = gamma
-        self.volt = [-6.0 + i for i in range(0, action_space_d, 1)]
+        self.adam = False
+        # self.volt = [-6.0 + i for i in range(n_actions)]
+        self.volt = [0.0 + i for i in range(n_actions)]
 
         self.policy_net = MLP(input_units=3,
-                              hidden_units=64,
+                              hidden_units=32,
                               output_units=self.n_actions,
                               bias=True)
         self.target_net = MLP(input_units=3,
-                              hidden_units=64,
+                              hidden_units=32,
                               output_units=self.n_actions,
                               bias=True)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
-        self.optimizer = RMSprop(self.policy_net.parameters())
+        if self.adam:
+            self.optimizer = Adam(self.policy_net.parameters(),
+                                  lr=1e-3,
+                                  weight_decay=1e-5)
+        else:
+            self.optimizer = RMSprop(self.policy_net.parameters(),
+                                     lr=5e-5)
         self.criterion = nn.SmoothL1Loss()
+        # self.criterion = nn.MSELoss()
         self.memory = ReplayMemory(100000)
         self.steps_done = 0
         self.batch_size = 16
         self.iter = 1
+        self.opt_flag = False
         self.done = False
-        self.t_prev = True
         self.device = torch.device("cpu")
+        self.R = 0
+        self.num_episode = 0
+        self.delta_old = None
+        self.writer = SummaryWriter()
+        self.v_hist = []
+        self.th_hist = []
+        self.tc_hist = []
+
+    def reset(self):
+        self.iter = 1
+        self.done = False
+        self.opt_flag = False
+        self.delta_old = None
+        self.R = 0
+        self.v_hist = []
+        self.th_hist = []
+        self.tc_hist = []
 
     def select_action(self, state):
         sample = random.random()
@@ -176,12 +203,6 @@ class dqn_controller(controller):
         else:
             return torch.tensor([[random.randrange(self.n_actions)]],
                                 dtype=torch.long)
-
-    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
-        x_std = (x - var[0]) / (var[1] - var[0])
-        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
-                    feature_range[0])
-        return x_scaled
 
     def optimize_model(self):
         if len(self.memory) < self.batch_size:
@@ -214,40 +235,73 @@ class dqn_controller(controller):
         self.optimizer.zero_grad()
         loss.backward()
         for param in self.policy_net.parameters():
-            param.grad.data.clamp_(-1, 1)
+            if param.requires_grad:
+                param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
+        self.writer.add_scalar('loss'+str(self.num_episode),
+                               loss.item(),
+                               self.iter)
 
-    def reward_(self, x, x_ref):
-        if x is None:
-            return 0
+    def sigmoid(self, x):
+        return 1. / (1. + np.exp(-x))
+
+    def reward_(self, x, x_ref, action):
+        delta_new = self.sigmoid(x_ref[0, 0] - x[0, 0])
+        if self.delta_old is None:
+            self.delta_old = delta_new
+            return torch.tensor([0.0])
+
+        if self.volt[action] < -1:
+            return torch.tensor([-0.2])
+        D = self.sigmoid(delta_new - self.delta_old)
+        if D > 0.5:
+            return torch.tensor([-0.05])
+        elif D <= 0.5:
+            return torch.tensor([0.1])
+        elif delta_new <= 0.01:
+            return torch.tensor([0.2])
         else:
-            return -(x_ref - x[0, 0])[0]**2
+            return torch.tensor([0.0])
+        # return torch.tensor([(x[0, 0] - x_ref[0, 0])**2])
+
+    def reward1(self, x, x_ref):
+        D = (x_ref[0, 0] - x[0, 0])
+        if torch.abs(x_ref[0, 0] - x[0, 0]) <= 1.0:
+            return torch.tensor([2])
+        if D > 0:
+            return torch.tensor([1])
+        if D < 0:
+            return torch.tensor([-1])
+
+    def terminate(self, ref):
+        if self.state[0, 0] > (ref.item() + 2)\
+                or self.state[0, 1] > ref.item()\
+                or self.iter == 4000:
+            self.r = torch.tensor([-5])
+            self.done = True
+            self.opt_flag = False
+        # elif self.state[0, 0] < ref.item() and self.iter > 1000:
+        #     self.r = torch.tensor([-5])
+        #     self.done = True
+        #     self.opt_flag = False
 
     def dql_train(self, x, ref):
         ref = torch.tensor(ref).view(-1, 1)
-        if self.done:
-            self.state = torch.tensor(x.copy()).view(1, 3)
-            self.action = self.select_action(self.state)
 
-        if self.t_prev is True and self.done is False:
-            self.state = torch.tensor(x.copy()).view(1, 3)
-            self.action = self.select_action(self.state)
-            self.r = self.reward_(self.state, ref)
-            self.t_prev = False
-            if np.abs(x[0] - ref) <= 0.9:
-                self.done = True
-            else:
-                self.done = False
-        elif self.done is False:
-            self.action = self.select_action(self.state)
-            self.r = self.reward_(self.state, ref)
-            if np.abs(x[0] - ref) <= 0.9:
-                self.done = True
-            else:
-                self.done = False
+        self.terminate(ref)
 
+        if self.opt_flag is False and self.done is False:
+            # print("ACTION", self.done)
+            self.action = self.select_action(self.state)
+            self.r = self.reward1(self.state, ref)
+            self.R += self.r.item() * self.gamma**self.iter
+
+            self.iter += 1
+            self.opt_flag = True
+        elif self.opt_flag is True:
+            # print("OPTIMIZE", self.done)
             if not self.done:
-                self.next_state = torch.tensor(x.copy()).view(1, 3)
+                self.next_state = x
             else:
                 self.next_state = None
 
@@ -260,21 +314,65 @@ class dqn_controller(controller):
 
             self.optimize_model()
 
-            if self.iter % TARGET_UPDATE == 0:
-                self.target_net.load_state_dict(self.policy_net.state_dict())
-
             self.iter += 1
-        return self.volt[self.action.item()] @ u_V
+            self.opt_flag = False
+        else:
+            self.iter += 1
+        return self.volt[self.action.item()]
 
     def _controller_f(self, t, ref, sensor_dict):
         th = sensor_dict['th'][-1]
         tc = sensor_dict['tc'][-1]
-        state = [th, tc, ref]
-        v = self.dql_train(state, ref)
-        print("Th: %f, Tc: %f, REF: %f, V: %f" % (state[0],
-                                                  state[1],
-                                                  state[2],
-                                                  v))
+        ref = ref
+        # if self.iter == 1:
+        #     self.state = torch.tensor([30.0, 20.0, 30.0]).view(1, 3)
+        # else:
+        self.state = torch.tensor([th, tc, ref]).view(1, 3)
+        v = self.dql_train(self.state, ref)
+        # print("Th: %f, Tc: %f, V: %f, It: %d, R: %f" % (th, tc, v,
+        #                                                 self.iter,
+        #                                                 self.R))
+        if self.done is False:
+            self.v_hist.append(min(16.0, max(-6.0, v)))
+            self.th_hist.append(sensor_dict['th'][-1])
+            self.tc_hist.append(sensor_dict['tc'][-1])
+
+            self.writer.add_scalar('t-hot'+str(self.num_episode),
+                                   th,
+                                   self.iter)
+            self.writer.add_scalar('volt'+str(self.num_episode),
+                                   v,
+                                   self.iter)
+            self.writer.add_scalar('reward'+str(self.num_episode),
+                                   self.R,
+                                   self.iter)
+
+        return min(16.0, max(-6.0, v)) @ u_V
+
+
+class random_controller(controller):
+
+    def __init__(self, seqr):
+        self.seqr = seqr
+
+        self.net = MLP(input_units=3,
+                       hidden_units=64,
+                       output_units=1,
+                       bias=True).eval()
+
+    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
+        x_std = (x - var[0]) / (var[1] - var[0])
+        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
+                    feature_range[0])
+        return x_scaled
+
+    def _controller_f(self, t, ref, sensor_dict):
+        th = self.scale(sensor_dict['th'][-1])
+        tc = self.scale(sensor_dict['tc'][-1])
+        ref = self.scale(ref)
+        self.state = torch.tensor([th, tc, ref])
+        v = self.net(self.state).detach().numpy()[0]
+        print("Th: %f, Tc: %f, REF: %f, V: %f" % (th, tc, ref, v))
         return v @ u_V
 
 
@@ -314,6 +412,7 @@ class pid_controller(controller):
                  (self.ki * self.integral) + \
                  (self.kd * derivative)
         output = min(16.00, max(-6.00, output))
+        print("V: %f" % (output))
         self.prev_err = error
         return output
 
@@ -351,7 +450,9 @@ class plant_circuit(Circuit):
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=SE)
         # EXTERNAL SOURCE
         self.plate_select = plate_select
-        self.ncs = tec_lib(self.controller_f, send_data=True, plate_select = self.plate_select)
+        self.ncs = tec_lib(self.controller_f,
+                           send_data=True,
+                           plate_select=self.plate_select)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
@@ -382,16 +483,16 @@ class plant_circuit(Circuit):
             ivar_vals = self.ncs.get_t()
         th_leg_0, = ax.plot(ivar_vals,
                             self.ncs.get_th_actual(),
-                            '-xk', lw=1.5,
+                            '-k', lw=1.5,
                             label="Hot Side Temp [C]", c="r")
         tc_leg_0, = ax.plot(ivar_vals,
                             self.ncs.get_tc_actual(),
-                            '-.xb', lw=1.5,
+                            '-b', lw=1.5,
                             label="Cold Side Temp [C]", c="b")
         if include_ref:
             ref_leg_0, = ax.plot(ivar_vals,
                                  self.ncs.get_ref_arr(),
-                                 '*', lw=1.5,
+                                 '-', lw=1.5,
                                  label="Ref Temp [C]", c = 'y')
         if ivar == IndVar.VOLTAGE:
             ax.set_xlabel("Voltage [V]", fontsize=18,
@@ -411,7 +512,7 @@ class plant_circuit(Circuit):
             if self.sig_type == Signal.VOLTAGE:
                 sig_leg, = ax1.plot(self.ncs.get_t(),
                                     self.ncs.get_v_arr(),
-                                    '--', lw=1.5, c='g',
+                                    '--', lw=1., c='g',
                                     label="Driving Voltage")
                 ax1.set_ylabel("Voltage [V]", fontsize=18,
                                weight='bold', color='black')
@@ -487,7 +588,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def __init__(self,
                  controller_f,
                  ref=0.00,
-                 steady_state_cycles=1000,
+                 steady_state_cycles=1500,
                  plate_select=TECPlate.HOT_SIDE,
                  **kwargs):
         # Temporary workaround:

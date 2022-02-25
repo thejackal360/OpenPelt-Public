@@ -15,18 +15,24 @@ then
 elif [ "$1" == "pid_hot" ]
 then
     var="pid_hot.py"
-elif [ "$1" == "mlp_hot" ]
+elif [ "$1" == "dqn_hot" ]
 then
-    var="mlp_hot.py"
-elif [ "$1" == "mlp_cold" ]
+    var="dqn_hot.py"
+elif [ "$1" == "dqn_cold" ]
 then
-    var="mlp_cold.py"
+    var="dqn_cold.py"
 elif [ "$1" == "transient" ]
 then
     var="transient.py"
 elif [ "$1" == "volt_ref" ]
 then
     var="volt_ref.py"
+elif [ "$1" == "random_hot" ]
+then
+    var="random_hot.py"
+elif [ "$1" == "random_cold" ]
+then
+    var="random_cold.py"
 else
     echo "No script found!"
     exit
