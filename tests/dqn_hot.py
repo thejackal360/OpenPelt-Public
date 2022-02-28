@@ -8,6 +8,8 @@ from torch import save, tensor
 
 TEST_NAME = "dqn_hot"
 
+REF_VAL = 25.0
+
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.makedirs('./results/')
