@@ -1,7 +1,5 @@
 ![](OpenPelt.png)
 
-## OpenPelt
-
 OpenPelt is a faster-than-real-time temperature control simulation library.
 OpenPelt contains utilities for developing and verifying temperature control
 algorithms as well as a model of a thermoelectric cooler to act as the plant.
