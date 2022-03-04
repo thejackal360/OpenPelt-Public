@@ -5,6 +5,7 @@ What is OpenPelt
 
 ##  Dependencies
 
+
 What are the requirements? 
 
 
@@ -24,7 +25,7 @@ How to install it?
 Please first consult the **CONTRIBUTING.md** file for the Code of Conduct.
 
 In case you would like to contribute to GAIM, you should use the [Gitlab Merge
-Request](https://github.com/thejackal360/OpenPelt/merge_requests) system. 
+Request](https://github.com/thejackal360/OpenPelt/pulls) system. 
 
 
 ## For more help
