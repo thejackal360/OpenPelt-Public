@@ -2,9 +2,9 @@
 title: 'OpenPelt: Python Framework for Control System Development'
 tags:
 authors:
-  - name: Georgios Detorakis
-    affiliation: 1
   - name: Roman Parise
+    affiliation: 1
+  - name: Georgios Is. Detorakis
     affiliation: 1
 affiliations:
  - name: Bessel Technologies LLC
