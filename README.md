@@ -1,3 +1,5 @@
+![](OpenPelt.png)
+
 ## OpenPelt
 
 What is OpenPelt
