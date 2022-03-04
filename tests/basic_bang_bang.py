@@ -27,3 +27,4 @@ if __name__ == "__main__":
     data = numpy.array([pC.get_t(), pC.get_i_arr()])
     numpy.save('./results/{}_time_i_curr'.format(TEST_NAME), data)
     plt.savefig('./results/{}'.format(TEST_NAME))
+    plt.show()

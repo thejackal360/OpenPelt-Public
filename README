@@ -1,11 +1,43 @@
-Run ./run_tecsim.
+## OpenPelt
+
+What is OpenPelt
+
+
+##  Dependencies
+
+What are the requirements? 
+
+
+## Install
+
+How to install it? 
+
+
+## Example usage
+
+
+## Platforms where OpenPelt has been tested 
+
+
+## Contributing Guidelines
+
+Please first consult the **CONTRIBUTING.md** file for the Code of Conduct.
+
+In case you would like to contribute to GAIM, you should use the [Gitlab Merge
+Request](https://github.com/thejackal360/OpenPelt/merge_requests) system. 
+
+
+## For more help
+
+See the paper, the examples of usage and the source codes in the **examples**
+directory.
+
+## Report Bugs
+
+In case you would like to report a bug or you experience any problems with
+OpenPelt, you should open an issue using the 
+[Githab Issue Tracker](https://github.com/thejackal360/OpenPelt/issues). 
+
 
 Uses libngspice.so for version 34.
-https: // sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/
-
-Neural controller class uses the MLP class (Pytorch class). The neural
-controller class provides a method called ** learn ** which allows for learning
-the weights of an MLP via Backpropagation. THe learning process uses the
-Adam optimizer and the MSE as loss function. The MLP is a one hidden layer
-feed-forward neural network. The number of hidden units is a parameter of the
-model as well as the bias and the learning rate.
+https:// sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/
