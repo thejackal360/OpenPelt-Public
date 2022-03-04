@@ -5,8 +5,8 @@ What is OpenPelt
 
 ##  Dependencies
 
-
-What are the requirements? 
+  - Numpy
+  - Pytorch
 
 
 ## Install
@@ -17,7 +17,12 @@ How to install it?
 ## Example usage
 
 
-## Platforms where OpenPelt has been tested 
+## Platforms where OpenPelt has been tested
+
+  - Ubuntu 20.04.4 LTS
+    - GCC 9.3.0
+    - Python 3.8.10
+    - x86_64 64bit
 
 
 ## Contributing Guidelines
