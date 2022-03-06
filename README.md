@@ -18,6 +18,38 @@ model.
 
 How to install it? 
 
+### Linux
+
+
+### Mac OS
+
+After you clone the OpenPelt's repository by using your Terminal app (go to 
+Finder->Utilities and then open the Terminal app or you can just use the 
+Spotlight by pressing command and space and type terminal). Then type the
+following command such that you clone the repository:
+```
+git clone https://github.com/thejackal360/OpenPelt.git
+```
+Then you will need to install the Ngspice and the libngspice packages using 
+Homebrew package manager. If you don't already have installed Homebre you will
+need to follow these steps: 
+
+
+Now you can install the Ngspice and libngspice by typing:
+
+```
+# brew install ngspice
+# brew install libngspice
+```
+
+Then make sure you have installed all the required packages listed in section
+**Dependencies**. Finally, you have to install OpenPelt by executing the 
+following commands (always in your terminal app)
+```
+# pip3 (or pip) install .
+```
+within the OpenPelt directory.
+
 
 ## Example usage
 
