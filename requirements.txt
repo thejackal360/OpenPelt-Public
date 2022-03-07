@@ -1,0 +1,4 @@
+Numpy==1.19.5
+Matplotlib==3.3.4
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==1.9.1+cpu
