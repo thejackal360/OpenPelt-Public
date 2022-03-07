@@ -11,14 +11,16 @@ model.
 ##  Dependencies
 
   - Numpy
+  - Matplotlib
   - Pytorch
 
 
 ## Install
 
-How to install it? 
+Here we provide installation instructions for Linux and Mac OS. 
 
 ### Linux
+
 
 
 ### Mac OS
@@ -32,10 +34,8 @@ git clone https://github.com/thejackal360/OpenPelt.git
 ```
 Then you will need to install the Ngspice and the libngspice packages using 
 Homebrew package manager. If you don't already have installed Homebre you will
-need to follow these steps: 
-
-
-Now you can install the Ngspice and libngspice by typing:
+need to follow the instructions [here](https://brew.sh/).
+Now you can proceed installing the Ngspice and libngspice by typing:
 
 ```
 # brew install ngspice
@@ -61,12 +61,14 @@ within the OpenPelt directory.
     - Python 3.8.10
     - x86_64 64bit
 
+  - Mac OS Monterey 12.2.1
+    - Apple clang version 13.0.0 (clang-1300.0.29.30)
+    - Python 3.9.10
+    - Apple M1 Pro
 
 ## Contributing Guidelines
 
-Please first consult the **CONTRIBUTING.md** file for the Code of Conduct.
-
-In case you would like to contribute to GAIM, you should use the [Gitlab Merge
+In case you would like to contribute to OpenPelt, you should use the [Github Pull
 Request](https://github.com/thejackal360/OpenPelt/pulls) system. 
 
 

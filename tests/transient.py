@@ -16,9 +16,9 @@ if __name__ == "__main__":
         os.makedirs('./figs/')
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector",
-                              lambda t , Th_arr : 2.1@u_A,
-                              OpenPelt.Signal.CURRENT,
-                              plate_select)
+                            lambda t, Th_arr: 2.1@u_A,
+                            OpenPelt.Signal.CURRENT,
+                            plate_select)
     start_t = time.time()
     pC.run_sim()
     end_t = time.time()

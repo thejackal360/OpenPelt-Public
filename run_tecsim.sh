@@ -15,12 +15,6 @@ then
 elif [ "$1" == "pid_hot" ]
 then
     var="pid_hot.py"
-elif [ "$1" == "dqn_hot" ]
-then
-    var="dqn_hot.py"
-elif [ "$1" == "dqn_cold" ]
-then
-    var="dqn_cold.py"
 elif [ "$1" == "transient" ]
 then
     var="transient.py"

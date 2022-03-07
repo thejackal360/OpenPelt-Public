@@ -5,6 +5,9 @@ import os
 import OpenPelt
 import numpy
 
+from OpenPelt.controller import random_controller
+
+
 TEST_NAME = "random_hot"
 
 if __name__ == "__main__":
@@ -15,7 +18,7 @@ if __name__ == "__main__":
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
     cbs = OpenPelt.circular_buffer_sequencer([25.0], pC.get_ncs())
-    nc = OpenPelt.random_controller(cbs)
+    nc = random_controller(cbs)
     pC.set_controller_f(nc.controller_f)
 
     pC.run_sim()
