@@ -19,7 +19,7 @@ Thermoelectric coolers are semiconductor heat pumps that can be used in
 precision temperature control applications. After designing a thermoelectric
 temperature control system, the primary challenge is tuning and testing
 control algorithms. For instance, developing proportional-integral-derivative
-involves tuning constants until the desired characteristic is observed, a
+controllers involves tuning constants until the desired characteristic is observed, a
 tedious, time-consuming process. Furthermore, experimenting with new algorithms
 not only takes a long time, but may also run the risk of damaging the system
 hardware. We propose a faster-than-real-time temperature control simulation
@@ -43,7 +43,7 @@ The latter is particularly time-consuming. The time to reach a target
 temperature with a thermoelectric cooler can be on the order of a minute.
 To observe an oscillatory temperature characteristic fully settle can take
 a few additional minutes. In order to fully understand the performance of a
-control algorithm with particular parameters, one may need endure these
+control algorithm with particular parameters, one may need to endure these
 several minute delays repeatedly. The result is a very arduous process.
 Self-tuning algorithms exist in the literature that partially resolve these
 issues. However, it is wise to prototype any control algorithm in a simulation
@@ -110,7 +110,7 @@ various gas concentrations, humidity levels, and temperature to be controlled.
 The tec_plant model also supports three-dimensional finite element simulation
 as well. Class methods enable the user to incorporate the results of the
 controller simulation into a three-dimensional model described using the Fenics
-library [@LoggEtal2012][@LoggWells2010]. Thus, users can see how the TEC interacts with more complex systems.
+library [@LoggEtal2012] [@LoggWells2010]. Thus, users can see how the TEC interacts with more complex systems.
 
 # Sample Results
 We reproduced figure 11 from the original paper using OpenPelt and a controller
