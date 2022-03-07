@@ -53,7 +53,7 @@ damaging the TEC hardware with overdrive scenarios.
 Furthermore, traditional control theory is undergoing a revolution in light of
 developments in machine learning and artificial intelligence. In recent
 years, neural networks and even reinforcement learning algorithms have been
-applied to temperature controllers. OpenPelt currently includes rudimentary
+applied to temperature controllers [@degrave2022magnetic]. OpenPelt currently includes rudimentary
 support for developing such control algorithms. The repo contains an example
 randomized neural network test, which performs surprisingly well as a
 temperature controller. These capabilities in OpenPelt can enable future
