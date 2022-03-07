@@ -18,15 +18,9 @@ then
 elif [ "$1" == "transient" ]
 then
     var="transient.py"
-elif [ "$1" == "volt_ref" ]
-then
-    var="volt_ref.py"
 elif [ "$1" == "random_hot" ]
 then
     var="random_hot.py"
-elif [ "$1" == "random_cold" ]
-then
-    var="random_cold.py"
 elif [ "$1" == "fenics_heat_eqn" ]
 then
     var="fenics_heat_eqn.py"
