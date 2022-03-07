@@ -50,8 +50,15 @@ issues. However, it is wise to prototype any control algorithm in a simulation
 beforehand for faster-than-real-time result acquisition and to avoid potentially
 damaging the TEC hardware with overdrive scenarios.
 
-(Can apply neural control algorithms. Already have a sample random network
-there.)
+Furthermore, traditional control theory is undergoing a revolution in light of
+developments in machine learning and artificial intelligence. In recent
+years, neural networks and even reinforcement learning algorithms have been
+applied to temperature controllers. OpenPelt currently includes rudimentary
+support for developing such control algorithms. The repo contains an example
+randomized neural network test, which performs surprisingly well as a
+temperature controller. These capabilities in OpenPelt can enable future
+neural control theory research, using a thermoelectric cooler as a test
+actuator.
 
 # Object-Oriented SPICE-based Thermoelectric Cooler Model
 
