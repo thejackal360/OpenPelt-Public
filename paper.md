@@ -1,5 +1,5 @@
 ---
-title: 'OpenPelt: Python Framework for Control System Development'
+title: 'OpenPelt: Python Framework for Thermoelectric Temperature Control System Development'
 tags:
 authors:
   - name: Roman Parise
@@ -50,6 +50,9 @@ issues. However, it is wise to prototype any control algorithm in a simulation
 beforehand for faster-than-real-time result acquisition and to avoid potentially
 damaging the TEC hardware with overdrive scenarios.
 
+(Can apply neural control algorithms. Already have a sample random network
+there.)
+
 # Object-Oriented SPICE-based Thermoelectric Cooler Model
 
 To our knowledge, no out-of-the-box, open source solution for TEC controller simulation
@@ -59,9 +62,9 @@ We investigated the literature and found an electro-thermal circuit model
 of a TEC [@848895]. Though the SPICE netlist is publicly available, there is no straightforward
 approach for simulating a traditional, let alone novel, control algorithm.
 
-We developed a methodology for control algorithm and buried the implementation
+We wrote a circuit netlist for the TEC model and buried the implementation
 details in a tec_plant class. We then developed test and controller objects
-that enable rapid testing of algorithms on instances of this tec_plant class.
+that enable rapid testing of control algorithms on instances of this tec_plant class.
 Firstly, one needs access to an open source SPICE simulator, ngspice in our case.
 The simulator then needs to support external current/voltage sources, so that
 a user's Python function can generate the driving value to the simulator on
@@ -108,11 +111,44 @@ that drives a constant 2.1A current [@848895].
 
 <div style="text-align:center">![](./figs/transient.png)</div>
 
+        plate_select = OpenPelt.TECPlate.HOT_SIDE
+        pC = OpenPelt.tec_plant("Detector",
+                                  lambda t , Th_arr : 2.1@u_A,
+                                  OpenPelt.Signal.CURRENT,
+                                  plate_select)
+        pC.run_sim()
+        pC.plot_th_tc(OpenPelt.IndVar.TIME)
+        plt.show()
+
 We have also developed proportional temperature controllers using OpenPelt.
 OpenPelt provides functionality for cycling through different reference
 temperatures in a test sequence.
 
 <div style="text-align:center">![](./figs/pid_hot.png)</div>
+
+        plate_select = OpenPelt.TECPlate.HOT_SIDE
+        pC = OpenPelt.tec_plant("Detector",
+                                None,
+                                OpenPelt.Signal.VOLTAGE,
+                                plate_select=plate_select,
+                                steady_state_cycles = 400)
+        cbs = OpenPelt.circular_buffer_sequencer([30.00, 40.00, 50.00], pC.get_ncs())
+        pidc = OpenPelt.pid_controller(cbs, 15.00, 0.00, 0.00, plate_select=plate_select)
+        pC.set_controller_f(pidc.controller_f)
+        pC.run_sim()
+        pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
+        plt.show()
+
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
+
+        plate_select = OpenPelt.TECPlate.COLD_SIDE
+        pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
+        cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00, 20.00, 25.00, 30.00], pC.get_ncs())
+        pidc = OpenPelt.pid_controller(cbs, -150.00, 0.00, 0.00, plate_select=plate_select)
+        pidc = OpenPelt.pid_controller(cbs, -30.00, -0.0007, -0.10, plate_select=plate_select)
+        pC.set_controller_f(pidc.controller_f)
+        pC.run_sim()
+        pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
+        plt.show()
 
 # Bibliography
