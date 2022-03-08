@@ -540,6 +540,10 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.ref = ref
         self.plate_select = plate_select
         # Reference temperature cannot be absolute zero :)
+        # More specifically, we're calculating errors using relative error.
+        # Relative error only makes sense on ratio scales, like kelvin, as
+        # opposed to interval scales, like celsius.
+        # https://en.wikipedia.org/wiki/Approximation_error#Examples
         assert C_to_K(self.ref) != 0.00
         self.th_sensor_error = [abs(C_to_K(x) - C_to_K(self.ref)) / abs(C_to_K(self.ref)) < ERR_TOL
                                 for x in self.th_sensor_window]
