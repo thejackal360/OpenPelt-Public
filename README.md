@@ -5,14 +5,23 @@ OpenPelt contains utilities for developing and verifying temperature control
 algorithms as well as a model of a thermoelectric cooler to act as the plant.
 OpenPelt also enables exporting simulation results to [Fenics](https://fenicsproject.org/)
 to simulate the control system's impact on a three-dimensional heat diffusion 
-model.
+model. Furthermore, OpenPelt can be used along with Torch (Pytorch) for developing
+neural controllers such as neural networks or reinforcement learning algorithms.
+Another advantage of OpenPelt is the integration with Fenics. This means that
+the results from an OpenPelt simulation can be used in Fenics in order to 
+acquire high-fidelity heat diffusion simulations and study the more realistic
+models, such as how a heat transfers from a thermoelectic cooler to neural 
+tissue (see the file **fenics_heat_eqn** in the tests directory of the current
+repository). 
 
 
 ##  Dependencies
 These are the dependencies one needs to install and use OpenPelt:
-  - Numpy >= 1.19.5
-  - Matplotlib >= 3.3.4
-  - Pytorch 1.9.1+cpu
+  - numpy >= 1.19.5
+  - matplotlib >= 3.3.4
+  - cffi >= 1.15.0
+  - pyspice >= 1.5
+  - torch 1.9.1+cpu
 
 A **requirements.txt** file is also included.
 
@@ -24,10 +33,31 @@ we provide installation instructions only for Linux platforms.
 
 ### Linux
 
+In order to install OpenPelt on Linux, first you have to install all the necessary
+dependencies:
+```
+$ pip3 (or pip) install -r requirements.txt
+```
+Then you can clone OpenPelt repository into a local directory on your machine:
+```
+$ git clone https://github.com/thejackal360/OpenPelt.git
+```
+Finally you have to install OpenPelt onto your system
+```
+$ cd OpenPelt/
+$ pip3 (or pip) install .
+```
+If you'd like to try the provided tests you can just run them by executing the
+following command from within the OpenPelt directory
+```
+$ ./run_tecsim name_of_the_test
+```
+The names of all the available tests are listed [here](https://github.com/thejackal360/OpenPelt#available-tests). 
+
 
 ## Example usage
 
-Here you can find a simple  source code that uses the OpenPelt to run a
+Here you can find a simple source code that uses the OpenPelt to simulating a
 bang-bang controller. 
 
 ```
@@ -79,12 +109,14 @@ And you can run the script as
 $ LD_LIBRARY_PATH=path_to_libngspice python bang_bang.py. 
 ```
 
+
+## Available tests
+
 All the tests provided by OpenPelt can run by executing
 ```
 $ ./run_tecsim.sh name_of_script
 ```
-where name of script can be one of the following:
-
+where *name_of_script* can be one of the following:
   - **basic_bang_bang** - This is a simple bang-bang controller
   - **op_point_current** - This script characterizes the hot and cold plate temperatures
   at different drive currents.
