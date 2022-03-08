@@ -25,3 +25,4 @@ if __name__ == "__main__":
     data = numpy.array([pC.get_v_arr(), pC.get_tc_actual()])
     numpy.save("./results/{}_volt_tc_characterization".format(TEST_NAME), data)
     plt.savefig('./results/{}'.format(TEST_NAME))
+    plt.show()

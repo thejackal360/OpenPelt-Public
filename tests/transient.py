@@ -23,8 +23,8 @@ if __name__ == "__main__":
     pC.run_sim()
     end_t = time.time()
     print("Run Time : {} [s] , Sim Time : {} [s] , Speedup Factor : {}".format(
-           end_t - start_t, OpenPelt.SIMULATION_TIME_IN_SEC,
-           OpenPelt.SIMULATION_TIME_IN_SEC / (end_t - start_t)))
+           end_t - start_t, pC.sim_time_in_s,
+           pC.sim_time_in_s / (end_t - start_t)))
     pC.plot_th_tc(OpenPelt.IndVar.TIME)
     plt.savefig('./figs/{}'.format(TEST_NAME))
     data = numpy.array([pC.get_t(), pC.get_th_sensor()])
@@ -34,3 +34,4 @@ if __name__ == "__main__":
     data = numpy.array([pC.get_t(), pC.get_i_arr()])
     numpy.save('./results/{}_time_i_curr'.format(TEST_NAME), data)
     plt.savefig('./results/{}'.format(TEST_NAME))
+    plt.show()

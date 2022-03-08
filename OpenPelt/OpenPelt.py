@@ -26,9 +26,9 @@ import torch
 
 # Simulation Parameters
 
-TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
-SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-SIMULATION_TIME_IN_SEC = 2000.00
+DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
+DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
+DEFAULT_SIMULATION_TIME_IN_SEC = 2000.00
 ROUND_DIGITS = 1
 ERR_TOL = 0.15
 
@@ -185,7 +185,10 @@ class tec_plant(Circuit):
                  _k_conint=K_CONINT,
                  _rp=RP,
                  _se=SE,
-                 _tamb=TAMB):
+                 _tamb=TAMB,
+                 sim_time_in_s = DEFAULT_SIMULATION_TIME_IN_SEC,
+                 sim_timesteps_per_sensor_sample = DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
+                 temp_sensor_samples_per_s = DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC):
         """
         Instantiate circuit with controller algorithm, whose function is
         specified by controller_f.
@@ -196,6 +199,9 @@ class tec_plant(Circuit):
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
+        self.sim_time_in_s = sim_time_in_s
+        self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
+        self.temp_sensor_samples_per_s = temp_sensor_samples_per_s
         # HEAT SINK
         self.V('1', '3', self.gnd, _tamb @ u_V)
         self.R('1', '4', '3', _k_rad @ u_Ohm)
@@ -376,7 +382,7 @@ class tec_plant(Circuit):
     def get_th_sensor(self):
         """
         Get array of hot plate temperatures read by sensor. Sensor only reads
-        periodically depending on the value of the TEMP_SENSOR_SAMPLES_PER_SEC
+        periodically depending on the value of the self.temp_sensor_samples_per_s
         constant.
         """
         return self.ncs.get_th_sensor()
@@ -384,7 +390,7 @@ class tec_plant(Circuit):
     def get_tc_sensor(self):
         """
         Get array of cold plate temperatures read by sensor. Sensor only reads
-        periodically depending on the value of the TEMP_SENSOR_SAMPLES_PER_SEC
+        periodically depending on the value of the self.temp_sensor_samples_per_s
         constant.
         """
         return self.ncs.get_tc_sensor()
@@ -416,9 +422,9 @@ class tec_plant(Circuit):
         """
         sim = self._simulator()
         sim.options(reltol=5e-6)
-        anls = sim.transient(step_time=(1.00/(TEMP_SENSOR_SAMPLES_PER_SEC *
-                                              SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE))@u_s,
-                             end_time=SIMULATION_TIME_IN_SEC@u_s,
+        anls = sim.transient(step_time=(1.00/(self.temp_sensor_samples_per_s *
+                                              self.sim_timesteps_per_sensor_sample))@u_s,
+                             end_time=self.sim_time_in_s@u_s,
                              use_initial_condition=True)
         Th_final = self.get_th_sensor()[-1]
         Tc_final = self.get_tc_sensor()[-1]
@@ -457,6 +463,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
                  ref=0.00,
                  steady_state_cycles=1500,
                  plate_select=TECPlate.HOT_SIDE,
+                 sim_timesteps_per_sensor_sample=DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
                  **kwargs):
         """
         Initialize tec_lib. steady_state_cycles defines the number of
@@ -478,7 +485,8 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.tc_sensor = []
         self.v = []
         self.i = []
-        self.timestep_counter = SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE
+        self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
+        self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
         self.next_i = 0.00
         self.steady_state_cycles = steady_state_cycles
@@ -541,7 +549,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         Function that determines how to collect data from each timestep of
         ngspice simulation.
         """
-        if self.timestep_counter == SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE:
+        if self.timestep_counter == self.sim_timesteps_per_sensor_sample:
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
             if len(self.th_sensor_window) == self.steady_state_cycles:
@@ -603,7 +611,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.tc_sensor = []
         self.v = []
         self.i = []
-        self.timestep_counter = SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE
+        self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
         self.next_i = 0.00
 
