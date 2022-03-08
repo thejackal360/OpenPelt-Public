@@ -1,6 +1,6 @@
 numpy==1.19.5
 matplotlib==3.3.4
 cffi==1.15.0
-pyspice=1.5
+pyspice==1.5
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==1.9.1+cpu

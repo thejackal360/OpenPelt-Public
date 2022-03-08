@@ -25,7 +25,13 @@ elif [ "$1" == "fenics_heat_eqn" ]
 then
     var="fenics_heat_eqn.py"
 else
-    echo "No script found!"
+    echo "Running full test suite!"
+    ./run_tecsim.sh basic_bang_bang
+    ./run_tecsim.sh op_point_current
+    ./run_tecsim.sh op_point_voltage
+    ./run_tecsim.sh pid_cold
+    ./run_tecsim.sh pid_hot
+    ./run_tecsim.sh transient
     exit
 fi
 
