@@ -67,6 +67,13 @@ def K_to_C(T_in_K):
     return T_in_K - 273.15
 
 
+def C_to_K(T_in_C):
+    """
+    Convert temperature in celsius to temperature in kelvin.
+    """
+    return T_in_C + 273.15
+
+
 def seed_everything(seed=1234):
     """
     Set random seed.
@@ -532,17 +539,12 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         """
         self.ref = ref
         self.plate_select = plate_select
-        if self.ref != 0:
-            self.th_sensor_error = [abs(x - self.ref) / abs(self.ref) < ERR_TOL
-                                    for x in self.th_sensor_window]
-            self.tc_sensor_error = [abs(x - self.ref) / abs(self.ref) < ERR_TOL
-                                    for x in self.tc_sensor_window]
-        else:
-            # TODO
-            self.th_sensor_error = [abs(x) < ERR_TOL
-                                    for x in self.th_sensor_window]
-            self.tc_sensor_error = [abs(x) < ERR_TOL
-                                    for x in self.tc_sensor_window]
+        # Reference temperature cannot be absolute zero :)
+        assert C_to_K(self.ref) != 0.00
+        self.th_sensor_error = [abs(C_to_K(x) - C_to_K(self.ref)) / abs(C_to_K(self.ref)) < ERR_TOL
+                                for x in self.th_sensor_window]
+        self.tc_sensor_error = [abs(C_to_K(x) - C_to_K(self.ref)) / abs(C_to_K(self.ref)) < ERR_TOL
+                                for x in self.tc_sensor_window]
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         """
@@ -557,11 +559,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.th_sensor_window.append(self.th_sensor[-1])
             if len(self.th_sensor_error) == self.steady_state_cycles:
                 del self.th_sensor_error[0]
-            if self.ref != 0:
-                self.th_sensor_error.append(abs(self.th_sensor[-1] - self.ref) / self.ref < ERR_TOL)
-            else:
-                # TODO
-                self.th_sensor_error.append(abs(self.th_sensor[-1]) < ERR_TOL)
+            # Reference temperature cannot be absolute zero :)
+            assert C_to_K(self.ref) != 0.00
+            self.th_sensor_error.append(abs(C_to_K(self.th_sensor[-1]) - C_to_K(self.ref)) / C_to_K(self.ref) < ERR_TOL)
             self.tc_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
             if len(self.tc_sensor_window) == self.steady_state_cycles:
@@ -569,11 +569,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
             self.tc_sensor_window.append(self.tc_sensor[-1])
             if len(self.tc_sensor_error) == self.steady_state_cycles:
                 del self.tc_sensor_error[0]
-            if self.ref != 0:
-                self.tc_sensor_error.append(abs(self.tc_sensor[-1] - self.ref) / self.ref < ERR_TOL)
-            else:
-                # TODO
-                self.tc_sensor_error.append(abs(self.tc_sensor[-1]) < ERR_TOL)
+            # Reference temperature cannot be absolute zero :)
+            assert C_to_K(self.ref) != 0.00
+            self.tc_sensor_error.append(abs(C_to_K(self.tc_sensor[-1]) - C_to_K(self.ref)) / C_to_K(self.ref) < ERR_TOL)
             self.timestep_counter = 0
         else:
             self.th_sensor.append(self.th_sensor[len(self.th_sensor) - 1])
