@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# TODO: Replace Penne's bioheat equation with regular heat equation.
-# We're modeling a copper block here.
-
 from fenics import FunctionSpace, TrialFunction, TestFunction, Function
 from fenics import DirichletBC, interpolate, File, Expression
 from fenics import Constant, dot, grad, dx, derivative, near
@@ -65,8 +62,8 @@ if __name__ == '__main__':
 
     # kappa = K(areas, 0.565, 0.3, degree=0)
     kappa = Function(V0)
-    # Copper block sits on TEC
-    k_values = [386.00, pC.get_k_val()]
+    # Brain gray matter sits on TEC
+    k_values = [0.565, pC.get_k_val()]
     for cell_no in range(subdomains.array().size):
         subdomain_no = subdomains.array()[cell_no]
         kappa.vector()[cell_no] = k_values[subdomain_no]
