@@ -148,6 +148,8 @@ class circular_buffer_sequencer(sequencer):
         self.sequence = sequence
         self.sequence_idx = 0
         self.ngspice_custom_lib = ngspice_custom_lib
+        self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx],
+                                        self.ngspice_custom_lib.get_plate_select())
 
     def get_ref(self):
         """
@@ -160,8 +162,8 @@ class circular_buffer_sequencer(sequencer):
                 self.sequence_idx = 0
             else:
                 self.sequence_idx += 1
-        self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx],
-                                        self.ngspice_custom_lib.get_plate_select())
+            self.ngspice_custom_lib.set_ref(self.sequence[self.sequence_idx],
+                                            self.ngspice_custom_lib.get_plate_select())
         return self.sequence[self.sequence_idx]
 
 
@@ -496,10 +498,9 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
         self.next_i = 0.00
+        assert steady_state_cycles > 0
         self.steady_state_cycles = steady_state_cycles
-        self.th_sensor_window = []
         self.th_sensor_error = []
-        self.tc_sensor_window = []
         self.tc_sensor_error = []
 
     def get_ref_arr(self):
@@ -539,16 +540,13 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         """
         self.ref = ref
         self.plate_select = plate_select
-        # Reference temperature cannot be absolute zero :)
-        # More specifically, we're calculating errors using relative error.
-        # Relative error only makes sense on ratio scales, like kelvin, as
-        # opposed to interval scales, like celsius.
-        # https://en.wikipedia.org/wiki/Approximation_error#Examples
-        assert C_to_K(self.ref) != 0.00
-        self.th_sensor_error = [abs(C_to_K(x) - C_to_K(self.ref)) / abs(C_to_K(self.ref)) < ERR_TOL
-                                for x in self.th_sensor_window]
-        self.tc_sensor_error = [abs(C_to_K(x) - C_to_K(self.ref)) / abs(C_to_K(self.ref)) < ERR_TOL
-                                for x in self.tc_sensor_window]
+        # Need to clear th_sensor_error and tc_sensor_error arrays.
+        # Arrays determined by relative error of each reading with the
+        # previous reading. Thus, when the reference is changed, the
+        # system will still technically be in steady state since the
+        # error arrays do not depend on the reference.
+        self.th_sensor_error = []
+        self.tc_sensor_error = []
 
     def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
         """
@@ -556,27 +554,39 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         ngspice simulation.
         """
         if self.timestep_counter == self.sim_timesteps_per_sensor_sample:
+            assert len(self.th_sensor) == len(self.tc_sensor)
+            assert len(self.th_sensor_error) == len(self.tc_sensor_error)
             self.th_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(HOT_SIDE_NODE)].real), ROUND_DIGITS))
-            if len(self.th_sensor_window) == self.steady_state_cycles:
-                del self.th_sensor_window[0]
-            self.th_sensor_window.append(self.th_sensor[-1])
             if len(self.th_sensor_error) == self.steady_state_cycles:
                 del self.th_sensor_error[0]
-            # Reference temperature cannot be absolute zero :)
-            assert C_to_K(self.ref) != 0.00
-            self.th_sensor_error.append(abs(C_to_K(self.th_sensor[-1]) - C_to_K(self.ref)) / C_to_K(self.ref) < ERR_TOL)
+            # Convention: The first element of the error array is always True.
+            # All other elements are determined by the relative error between the
+            # previous sensor reading and the sensor reading at that index.
+
+            # We're calculating errors using relative error.
+            # Relative error only makes sense on ratio scales, like kelvin, as
+            # opposed to interval scales, like celsius.
+            # https://en.wikipedia.org/wiki/Approximation_error#Examples
+            if len(self.th_sensor_error) == 0:
+                self.th_sensor_error.append(True)
+            else:
+                self.th_sensor_error.append(abs(C_to_K(self.th_sensor[-2]) -
+                                                C_to_K(self.th_sensor[-1])) /
+                                                C_to_K(self.th_sensor[-2]) < ERR_TOL)
             self.tc_sensor.append(
                 round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
-            if len(self.tc_sensor_window) == self.steady_state_cycles:
-                del self.tc_sensor_window[0]
-            self.tc_sensor_window.append(self.tc_sensor[-1])
             if len(self.tc_sensor_error) == self.steady_state_cycles:
                 del self.tc_sensor_error[0]
-            # Reference temperature cannot be absolute zero :)
-            assert C_to_K(self.ref) != 0.00
-            self.tc_sensor_error.append(abs(C_to_K(self.tc_sensor[-1]) - C_to_K(self.ref)) / C_to_K(self.ref) < ERR_TOL)
+            if len(self.tc_sensor_error) == 0:
+                self.tc_sensor_error.append(True)
+            else:
+                self.tc_sensor_error.append(abs(C_to_K(self.tc_sensor[-2]) -
+                                                C_to_K(self.tc_sensor[-1])) /
+                                                C_to_K(self.tc_sensor[-2]) < ERR_TOL)
             self.timestep_counter = 0
+            assert len(self.th_sensor) == len(self.tc_sensor)
+            assert len(self.th_sensor_error) == len(self.tc_sensor_error)
         else:
             self.th_sensor.append(self.th_sensor[len(self.th_sensor) - 1])
             self.tc_sensor.append(self.tc_sensor[len(self.tc_sensor) - 1])
