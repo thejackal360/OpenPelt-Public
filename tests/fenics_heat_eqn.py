@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
 from fenics import FunctionSpace, TrialFunction, TestFunction, Function
-from fenics import DirichletBC, interpolate, File, Expression
-from fenics import Constant, dot, grad, dx, derivative, near
+from fenics import DirichletBC, interpolate, File
+from fenics import Constant, dot, grad, dx, derivative
 from fenics import Point, plot, set_log_level
 from fenics import BoxMesh, MeshFunction, SubDomain
 from fenics import NonlinearVariationalProblem, NonlinearVariationalSolver
+
 import OpenPelt
+from OpenPelt.controller import pid_controller
 
 import numpy as np
 import matplotlib.pylab as plt
+
+TEMP_SENSOR_SAMPLES_PER_SEC = 1
+SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2
 
 tol = 1e-14
 set_log_level(20)
@@ -22,9 +27,9 @@ class Omega0(SubDomain):
 
 if __name__ == '__main__':
 
-    T         = 100
+    T = 100
     num_steps = 100
-    dt        = T / num_steps
+    dt = T / num_steps
 
     rho = Constant(1039)        # Mass density
     C = Constant(3680)          # Specific heat C
@@ -47,9 +52,18 @@ if __name__ == '__main__':
     V0 = FunctionSpace(mesh, 'DG', 0)
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE
-    pC = OpenPelt.tec_plant("TEC", None, OpenPelt.Signal.VOLTAGE, plate_select = plate_select)
+    pC = OpenPelt.tec_plant("TEC",
+                            None,
+                            OpenPelt.Signal.VOLTAGE,
+                            plate_select=plate_select)
     cbs = OpenPelt.circular_buffer_sequencer([50.00], pC.get_ncs())
-    pidc = OpenPelt.pid_controller(cbs, 8.00, 0.00, 0.00, plate_select = plate_select)
+    pidc = pid_controller(cbs,
+                          8.00,
+                          0.00,
+                          0.00,
+                          plate_select,
+                          TEMP_SENSOR_SAMPLES_PER_SEC,
+                          SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE)
     pC.set_controller_f(pidc.controller_f)
     pC.run_sim()
 
