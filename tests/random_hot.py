@@ -7,13 +7,15 @@ import numpy
 
 from OpenPelt.controller import random_controller
 
+from omnipyseed.seeding import universal_seed
+
 
 TEST_NAME = "random_hot"
 
 if __name__ == "__main__":
     if not os.path.exists('./results/'):
         os.mkdirs('./results/')
-    OpenPelt.seed_everything(7777)
+    universal_seed(7777)
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
