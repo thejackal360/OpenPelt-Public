@@ -19,15 +19,15 @@ Thermoelectric coolers are semiconductor heat pumps that can be used in
 precision temperature control applications. After designing a thermoelectric
 temperature control system, the primary challenge is tuning and testing
 control algorithms. For instance, developing proportional-integral-derivative
-controllers involves tuning constants until the desired characteristic is observed, a
+controllers involves tuning gains until the desired characteristic is observed, a
 tedious, time-consuming process. Furthermore, experimenting with new algorithms
-not only takes a long time, but may also run the risk of damaging the system
+not only takes a long time, but may also run the risk of damaging the 
 hardware. We propose a faster-than-real-time temperature control simulation
 library, called OpenPelt. OpenPelt contains utilities for developing and
 verifying temperature control algorithms as well as a model of a thermoelectric
 cooler to act as the plant. OpenPelt also enables exporting simulation
-results to Fenics to view the control system's impact on a three-dimensional
-system.
+results to Fenics to simulate the control system's impact on a three-dimensional
+model.
 
 # Statement of need
 Thermoelectric coolers (TECs) are semiconductor heat pumps used in various applications [@CHEIN20042207].
@@ -55,8 +55,11 @@ developments in machine learning and artificial intelligence. In recent
 years, neural networks and even reinforcement learning algorithms have been
 applied to temperature controllers [@degrave2022magnetic]. OpenPelt currently includes rudimentary
 support for developing such control algorithms. The repo contains an example
-randomized neural network test, which performs surprisingly well as a
-temperature controller. These capabilities in OpenPelt can enable future
+randomized neural network test, which is included as a proof of concept for using neural networks in OpenPelt.
+Training the network is out of the scope of the present work.
+Furthermore, OpenPelt offers support for training reinforcement learning control algorithms.
+We have an example test case of a naive agent consuming random actions to control the TEC plate's temperature.
+These capabilities in OpenPelt can enable future
 neural control theory research, using a thermoelectric cooler as a test
 actuator.
 
