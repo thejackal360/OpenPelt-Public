@@ -180,7 +180,7 @@ class tec_plant(Circuit):
                  controller_f,
                  sig_type=Signal.VOLTAGE,
                  plate_select=TECPlate.HOT_SIDE,
-                 steady_state_cycles=1000,
+                 steady_state_cycles=250,
                  _k_rad=K_RAD,
                  _c_rad=C_RAD,
                  _k_sil=K_SIL,
@@ -432,7 +432,7 @@ class tec_plant(Circuit):
                            self.sim_timesteps_per_sensor_sample))
         stop_time = self.sim_time_in_s
         start_time = 0.0
-        tmax = stop_time * 2.00
+        tmax = step_size
         cmd = "tran {} {} {} {} uic".format(step_size,
                                             stop_time,
                                             start_time,
