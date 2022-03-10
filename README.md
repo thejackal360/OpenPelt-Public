@@ -137,11 +137,6 @@ where *name_of_script* can be one of the following:
     - Python 3.8.10
     - x86_64 64bit
 
-  - Ubuntu 18.04.6 LTS
-    - GCC 7.5.0
-    - Python 3.6.9
-    - x86_64 64bit
-
 ## Contributing Guidelines
 
 In case you would like to contribute to OpenPelt, you should use the [Github Pull

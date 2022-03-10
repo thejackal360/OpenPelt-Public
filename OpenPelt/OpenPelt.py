@@ -89,9 +89,6 @@ def seed_everything(seed=1234):
     os.environ['PYTHONHASHSEED'] = str(ospyseed)
 
 
-seed_everything(DEFAULT_SEED)
-
-
 # Classes
 class Signal(Enum):
     """
@@ -195,9 +192,9 @@ class tec_plant(Circuit):
                  _rp=RP,
                  _se=SE,
                  _tamb=TAMB,
-                 sim_time_in_s = DEFAULT_SIMULATION_TIME_IN_SEC,
-                 sim_timesteps_per_sensor_sample = DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
-                 temp_sensor_samples_per_s = DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC):
+                 sim_time_in_s=DEFAULT_SIMULATION_TIME_IN_SEC,
+                 sim_timesteps_per_sensor_sample=DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
+                 temp_sensor_samples_per_s=DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC):
         """
         Instantiate circuit with controller algorithm, whose function is
         specified by controller_f.
