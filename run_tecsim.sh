@@ -18,9 +18,12 @@ then
 elif [ "$1" == "transient" ]
 then
     var="transient.py"
-elif [ "$1" == "random_hot" ]
+elif [ "$1" == "random_agent_hot" ]
 then
-    var="random_hot.py"
+    var="random_agent_hot.py"
+elif [ "$1" == "fake_neural_controller_hot" ]
+then
+    var="fake_neural_controller_hot.py"
 elif [ "$1" == "fenics_heat_eqn" ]
 then
     var="fenics_heat_eqn.py"
@@ -32,6 +35,8 @@ else
     ./run_tecsim.sh pid_cold
     ./run_tecsim.sh pid_hot
     ./run_tecsim.sh transient
+    ./run_tecsim.sh fake_neural_controller_hot
+    ./run_tecsim.sh random_agent_hot
     exit
 fi
 

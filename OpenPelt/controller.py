@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import random
 from .neural_networks import MLP
 from PySpice.Unit import u_V
 from torch import tensor
@@ -48,7 +49,7 @@ class controller(ABC):
         pass
 
 
-class random_controller(controller):
+class fake_neural_controller(controller):
 
     def __init__(self, seqr):
         self.seqr = seqr
@@ -70,6 +71,43 @@ class random_controller(controller):
         ref = self.scale(ref)
         self.state = tensor([th, tc, ref])
         v = self.net(self.state).detach().numpy()[0]
+        print("Th: %f, Tc: %f, REF: %f, V: %f" % (th, tc, ref, v))
+        return v @ u_V
+
+
+class random_agent_controller(controller):
+
+    def __init__(self, seqr):
+        self.seqr = seqr
+        self.ref = 0.0
+        self.volt = [-6.0 + i for i in range(23)]
+        self.total_r = 0
+        self.freeze = False
+
+    def take_action(self):
+        return random.randint(0, 22)
+
+    def reward(self):
+        if self.state[0] == self.ref:
+            self.freeze = True
+            return 1
+        else:
+            return -1
+
+    def agent(self, state):
+        action = self.volt[self.take_action()]
+        self.r = self.reward()
+        self.total_r += self.r
+        return action
+
+    def _controller_f(self, t, ref, sensor_dict):
+        th = sensor_dict['th'][-1]
+        tc = sensor_dict['tc'][-1]
+        self.ref = ref
+        self.state = [th, tc, ref]
+        v = self.agent(self.state)
+        if self.freeze:
+            v = 6.0
         print("Th: %f, Tc: %f, REF: %f, V: %f" % (th, tc, ref, v))
         return v @ u_V
 

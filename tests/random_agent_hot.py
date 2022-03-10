@@ -5,7 +5,7 @@ import os
 import OpenPelt
 import numpy
 
-from OpenPelt.controller import random_controller
+from OpenPelt.controller import random_agent_controller
 
 from omnipyseed.seeding import universal_seed
 
@@ -19,8 +19,8 @@ if __name__ == "__main__":
 
     plate_select = OpenPelt.TECPlate.HOT_SIDE
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
-    cbs = OpenPelt.circular_buffer_sequencer([25.0], pC.get_ncs())
-    nc = random_controller(cbs)
+    cbs = OpenPelt.circular_buffer_sequencer([30.0], pC.get_ncs())
+    nc = random_agent_controller(cbs)
     pC.set_controller_f(nc.controller_f)
 
     pC.run_sim()
