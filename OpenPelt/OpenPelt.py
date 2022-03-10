@@ -428,10 +428,18 @@ class tec_plant(Circuit):
         """
         sim = self._simulator()
         sim.options(reltol=5e-6)
-        anls = sim.transient(step_time=(1.00/(self.temp_sensor_samples_per_s *
-                                              self.sim_timesteps_per_sensor_sample))@u_s,
-                             end_time=self.sim_time_in_s@u_s,
-                             use_initial_condition=True)
+        step_size = (1.00/(self.temp_sensor_samples_per_s *
+                           self.sim_timesteps_per_sensor_sample))
+        stop_time = self.sim_time_in_s
+        start_time = 0.0
+        tmax = stop_time * 2.00
+        cmd = "tran {} {} {} {} uic".format(step_size,
+                                            stop_time,
+                                            start_time,
+                                            tmax)
+        # XXX: Hacky workaround to compensate for bugs in PySpice's sim.transient
+        self.ncs.load_circuit(str(self) + "\n.end")
+        self.ncs.exec_command(cmd)
         Th_final = self.get_th_sensor()[-1]
         Tc_final = self.get_tc_sensor()[-1]
         V_final = self.get_v_arr()[-1]
