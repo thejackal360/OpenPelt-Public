@@ -28,7 +28,7 @@ import torch
 
 DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
 DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-DEFAULT_SIMULATION_TIME_IN_SEC = 2000.00
+DEFAULT_SIMULATION_TIME_IN_SEC = 1500.00
 ROUND_DIGITS = 1
 ERR_TOL = 0.15
 
@@ -180,7 +180,7 @@ class tec_plant(Circuit):
                  controller_f,
                  sig_type=Signal.VOLTAGE,
                  plate_select=TECPlate.HOT_SIDE,
-                 steady_state_cycles=250,
+                 steady_state_cycles=1000,
                  _k_rad=K_RAD,
                  _c_rad=C_RAD,
                  _k_sil=K_SIL,
@@ -433,23 +433,18 @@ class tec_plant(Circuit):
         """
         Run a transient simulation. Returns [V_final, Th_final, Tc_final].
         Behavior undefined for current driver simulation.
+
+        Note: Timestep size parameters are merely a suggestion to the SPICE
+        simulator. ngspice determines timestep size using numerous factors.
+        For instance, reltol for the Newton-Raphson algorithm affects timestep
+        size. The timestep size can change throughout the simulation as well.
         """
         sim = self._simulator()
-        step_size = (1.00/(self.temp_sensor_samples_per_s *
-                           self.sim_timesteps_per_sensor_sample))
-        stop_time = self.sim_time_in_s
-        start_time = 0.0
-        # TODO: Need to make compute step size tunable
-        tmax = step_size
-        cmd = ".tran {}s {}s {}s uic".format(step_size,
-                                             stop_time,
-                                             start_time,
-                                             tmax)
-        reltol = ".options reltol = 5e-6"
-        circ = str(self) + "\n" + reltol + "\n" + cmd + "\n.end"
-        # XXX: Hacky workaround to compensate for bugs in PySpice's sim.transient
-        self.ncs.load_circuit(circ)
-        self.ncs.exec_command("run")
+        sim.options(reltol=5e-6)
+        anls = sim.transient(step_time=(1.00/(self.temp_sensor_samples_per_s *
+                                              self.sim_timesteps_per_sensor_sample))@u_s,
+                             end_time=self.sim_time_in_s@u_s,
+                             use_initial_condition=True)
         Th_final = self.get_th_sensor()[-1]
         Tc_final = self.get_tc_sensor()[-1]
         V_final = self.get_v_arr()[-1]
