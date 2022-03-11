@@ -71,7 +71,6 @@ class fake_neural_controller(controller):
         ref = self.scale(ref)
         self.state = tensor([th, tc, ref])
         v = self.net(self.state).detach().numpy()[0]
-        print("Th: %f, Tc: %f, REF: %f, V: %f" % (th, tc, ref, v))
         return v @ u_V
 
 
@@ -108,7 +107,6 @@ class random_agent_controller(controller):
         v = self.agent(self.state)
         if self.freeze:
             v = 6.0
-        print("Th: %f, Tc: %f, REF: %f, V: %f" % (th, tc, ref, v))
         return v @ u_V
 
 
@@ -171,6 +169,5 @@ class pid_controller(controller):
                  (self.ki * self.integral) + \
                  (self.kd * derivative)
         output = min(16.00, max(-6.00, output))
-        print("V: %f" % (output))
         self.prev_err = error
         return output
