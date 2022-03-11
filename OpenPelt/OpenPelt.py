@@ -315,6 +315,14 @@ class tec_plant(Circuit):
             ivar_vals = self.ncs.get_i_arr()
         else:
             ivar_vals = self.ncs.get_t()
+        assert len(ivar_vals) == len(self.ncs.get_th_actual())
+        assert len(ivar_vals) == len(self.ncs.get_tc_actual())
+        assert len(ivar_vals) == len(self.ncs.get_ref_arr())
+        if ivar == IndVar.TIME:
+            if self.sig_type == Signal.VOLTAGE:
+                assert len(ivar_vals) == len(self.ncs.get_v_arr())
+            elif self.sig_type == Signal.CURRENT:
+                assert len(ivar_vals) == len(self.ncs.get_i_arr())
         th_leg_0, = ax.plot(ivar_vals,
                             self.ncs.get_th_actual(),
                             '-k', lw=1.5,
@@ -427,19 +435,21 @@ class tec_plant(Circuit):
         Behavior undefined for current driver simulation.
         """
         sim = self._simulator()
-        sim.options(reltol=5e-6)
         step_size = (1.00/(self.temp_sensor_samples_per_s *
                            self.sim_timesteps_per_sensor_sample))
         stop_time = self.sim_time_in_s
         start_time = 0.0
+        # TODO: Need to make compute step size tunable
         tmax = step_size
-        cmd = "tran {} {} {} {} uic".format(step_size,
-                                            stop_time,
-                                            start_time,
-                                            tmax)
+        cmd = ".tran {}s {}s {}s uic".format(step_size,
+                                             stop_time,
+                                             start_time,
+                                             tmax)
+        reltol = ".options reltol = 5e-6"
+        circ = str(self) + "\n" + reltol + "\n" + cmd + "\n.end"
         # XXX: Hacky workaround to compensate for bugs in PySpice's sim.transient
-        self.ncs.load_circuit(str(self) + "\n.end")
-        self.ncs.exec_command(cmd)
+        self.ncs.load_circuit(circ)
+        self.ncs.exec_command("run")
         Th_final = self.get_th_sensor()[-1]
         Tc_final = self.get_tc_sensor()[-1]
         V_final = self.get_v_arr()[-1]
