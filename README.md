@@ -133,7 +133,7 @@ where *name_of_script* can be one of the following:
 ## Platforms where OpenPelt has been tested
 
   - Ubuntu 20.04.4 LTS
-    - GCC 9.3.0
+    - GCC 9.3.0 and 9.4.0
     - Python 3.8.10
     - x86_64 64bit
 
