@@ -137,6 +137,9 @@ where *name_of_script* can be one of the following:
     - Python 3.8.10
     - x86_64 64bit
 
+Note: libngspice.so compiled using GCC 9.4.0. thejackal360's ngspice fork is the
+used as the source: https://sourceforge.net/u/thejackal360/ngspice/ci/master/tree/.
+
 ## Contributing Guidelines
 
 In case you would like to contribute to OpenPelt, you should use the [Github Pull
