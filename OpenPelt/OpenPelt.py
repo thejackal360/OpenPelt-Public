@@ -438,6 +438,10 @@ class tec_plant(Circuit):
         simulator. ngspice determines timestep size using numerous factors.
         For instance, reltol for the Newton-Raphson algorithm affects timestep
         size. The timestep size can change throughout the simulation as well.
+
+        Note: reltol is defaulted to 5e-6. This is the reltol in the original paper.
+        Future changes may need to adapt this for different scenarios, or simple
+        offer it as a parameter to the end user.
         """
         sim = self._simulator()
         sim.options(reltol=5e-6)
