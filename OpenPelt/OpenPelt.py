@@ -201,6 +201,13 @@ class tec_plant(Circuit):
 
         sig_type specifies whether we're driving a voltage or a current from
         the controller.
+
+        The timestep parameters sim_timesteps_per_sensor_sample and temp_sensor_samples_per_s
+        are used to determine a suggested timestep size. However, it should be emphasized
+        that that timestep size is merely a SUGGESTION to the ngspice simulator. The timestep
+        size may vary throughout the simulation, and it depends on other parameters such as
+        reltol. Because of this, steady_state_cycles is somewhat ambiguous as well since it
+        is given in timesteps.
         """
         Circuit.__init__(self, name)
         self.controller_f = controller_f
