@@ -244,8 +244,8 @@ class tec_plant(Circuit):
         self.plate_select = plate_select
         self.ncs = tec_lib(self.controller_f,
                            send_data=True,
-                           plate_select = self.plate_select,
-                           steady_state_cycles = steady_state_cycles)
+                           plate_select=self.plate_select,
+                           steady_state_cycles=steady_state_cycles)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
