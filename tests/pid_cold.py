@@ -9,7 +9,6 @@ from OpenPelt.controller import pid_controller
 
 
 TEST_NAME = "pid_cold"
-TEST_NAME = "pid_hot"
 TEMP_SENSOR_SAMPLES_PER_SEC = 1
 SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2
 
