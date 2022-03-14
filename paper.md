@@ -114,11 +114,11 @@ interest. This also enables reuse of controller algorithms and test code
 for systems of diverse control parameters, such as a cell incubator requiring
 various gas concentrations, humidity levels, and temperature to be controlled.
 
-The tec_plant model also supports three-dimensional finite element simulation
+The tec_plant model supports preliminary three-dimensional finite element simulation
 as well. Class methods enable the user to incorporate the results of the
 controller simulation into a three-dimensional model described using the  
 Fenics library [@LoggEtal2012] [@LoggWells2010]. For the time being OpenPelt
-supports only legacy Fenics. However, it's up to end-users if the would like 
+supports only legacy Fenics. However, it's up to end-users if they would like 
 to use the most modern Fenics implementation. 
 Thus, users can see how the TEC interacts with more complex systems.
 
@@ -159,10 +159,15 @@ temperatures in a test sequence.
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
 
         plate_select = OpenPelt.TECPlate.COLD_SIDE
-        pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, plate_select=plate_select)
-        cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00, 20.00, 25.00, 30.00], pC.get_ncs())
-        pidc = OpenPelt.pid_controller(cbs, -150.00, 0.00, 0.00, plate_select=plate_select)
-        pidc = OpenPelt.pid_controller(cbs, -30.00, -0.0007, -0.10, plate_select=plate_select)
+        pC = OpenPelt.tec_plant("Detector",
+                                None,
+                                OpenPelt.Signal.VOLTAGE,
+                                plate_select=plate_select)
+        cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00,
+                                                  20.00, 25.00],
+                                                  pC.get_ncs())
+        pidc = OpenPelt.pid_controller(cbs, -150.00, 0.00, 0.00,
+                                       plate_select=plate_select)
         pC.set_controller_f(pidc.controller_f)
         pC.run_sim()
         pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)

@@ -8,8 +8,6 @@ import numpy
 from OpenPelt.controller import pid_controller
 
 TEST_NAME = "pid_hot"
-TEMP_SENSOR_SAMPLES_PER_SEC = 1
-SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2
 
 
 if __name__ == "__main__":
@@ -25,10 +23,7 @@ if __name__ == "__main__":
                             steady_state_cycles=400)
     cbs = OpenPelt.circular_buffer_sequencer([30.00, 40.00, 50.00],
                                              pC.get_ncs())
-    pidc = pid_controller(cbs, 15.00, 0.00, 0.00,
-                          plate_select,
-                          TEMP_SENSOR_SAMPLES_PER_SEC,
-                          SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE)
+    pidc = pid_controller(cbs, 15.00, 0.00, 0.00, plate_select=plate_select)
     pC.set_controller_f(pidc.controller_f)
     pC.run_sim()
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver=False, include_ref=True)
