@@ -92,11 +92,15 @@ and resistance values, to the values in the original paper. However, users
 are able to modify them with their experimental results or theoretical
 approximations. In the future, we would like to provide detailed models of
 circuit component values and have the class infer those parameters based on
-the geometric and material properties of the TEC described. The model
-is useful for relatively low-power control of the TEC. However, at higher
-power levels, the TEC heats up and thermal drift affects the circuit parameters.
-This is also a desirable future feature, but there are unlikely very many
-applications in which this is useful.
+the geometric and material properties of the TEC described. We would also
+like to be able to provide a physical model of the temperature sensor
+and its coupling to the TEC. Currently, controllers have no overshoot due
+to the ideality of the sensor and its coupling to the TEC.
+
+Furthermore, the model is useful for relatively low-power control of the TEC.
+However, at higher power levels, the TEC heats up and thermal drift affects
+the circuit parameters. This is also a desirable future feature, but there are
+unlikely very many applications in which this is useful.
 
 We ultimately chose a circuit model for two reasons. Firstly, circuit models
 are computationally simple and efficient since they are solved using
