@@ -16,7 +16,7 @@ if __name__ == "__main__":
     pC = OpenPelt.tec_plant("Detector",
                             lambda: 2.1@u_A,
                             OpenPelt.Signal.CURRENT)
-    pC.characterize_plant(-6.00@u_A, 6.00@u_A, 0.01@u_A)
+    pC.characterize_plant(-5.00, 5.00, 0.1)
     pC.plot_th_tc(OpenPelt.IndVar.CURRENT)
     plt.savefig('./figs/{}'.format(TEST_NAME))
     data = numpy.array([pC.get_i_arr(), pC.get_th_actual()])

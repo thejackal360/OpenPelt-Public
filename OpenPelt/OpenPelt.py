@@ -11,7 +11,7 @@ import cffi
 from enum import Enum
 import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit
-from PySpice.Unit import u_V, u_Ohm, u_F, u_s
+from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 import PySpice.Spice.NgSpice.Shared
 
 try:
@@ -324,8 +324,8 @@ class tec_plant(Circuit):
             ivar_vals = self.ncs.get_t()
         assert len(ivar_vals) == len(self.ncs.get_th_actual())
         assert len(ivar_vals) == len(self.ncs.get_tc_actual())
-        assert len(ivar_vals) == len(self.ncs.get_ref_arr())
         if ivar == IndVar.TIME:
+            assert len(ivar_vals) == len(self.ncs.get_ref_arr())
             if self.sig_type == Signal.VOLTAGE:
                 assert len(ivar_vals) == len(self.ncs.get_v_arr())
             elif self.sig_type == Signal.CURRENT:
@@ -466,13 +466,36 @@ class tec_plant(Circuit):
         Acts as a DC sweep function. May contain errors since behavior is not
         validated.
         """
+        num_incr = (val_max - val_min) / step_size
+        assert float(int(num_incr)) == num_incr
+        num_incr = int(num_incr)
         sim = self.simulator(simulator='ngspice-shared',
                              ngspice_shared=self.ncs)
         sim.options(reltol=5e-6)
+        tmp_controller_f = self.controller_f
+        th = []
+        tc = []
         if self.sig_type == Signal.VOLTAGE:
-            anls = sim.dc(Vinput_src=slice(val_min, val_max, step_size))
+            v_range = np.linspace(val_min, val_max, num_incr)
+            for _v in v_range:
+                self.set_controller_f(lambda _t, _dict : _v@u_V)
+                tmp_v, tmp_th, tmp_tc = self.run_sim()
+                th.append(tmp_th)
+                tc.append(tmp_tc)
+            self.ncs.v = v_range
         else:
-            anls = sim.dc(Iinput_src=slice(val_min, val_max, step_size))
+            i_range = np.linspace(val_min, val_max, num_incr)
+            for _i in i_range:
+                self.set_controller_f(lambda _t, _dict : _i@u_A)
+                tmp_v, tmp_th, tmp_tc = self.run_sim()
+                th.append(tmp_th)
+                tc.append(tmp_tc)
+            self.ncs.i = i_range
+        self.ncs.th_actual = th
+        self.ncs.tc_actual = tc
+        assert len(th) == len(self.get_th_actual())
+        assert len(tc) == len(self.get_tc_actual())
+        self.set_controller_f(tmp_controller_f)
 
     def is_steady_state(self):
         """
