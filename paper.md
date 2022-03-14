@@ -33,8 +33,8 @@ heat diffusion models.
 Thermoelectric coolers (TECs) are semiconductor heat pumps used in various applications [@CHEIN20042207].
 For instance, when heat sinking and fans will not suffice in electronics cooling
 applications, a TEC can be used as an alternative. Similarly, TECs can be used
-to cool down mid-infrared LEDs for use in lasers and volatile organic compound
-detectors [@MansourPaper].
+to cool down components in lasers and volatile organic compound
+detectors [@MansourPaper][@MOSIERBOSS200315].
 
 Designing TEC-based temperature control systems involves overcoming two primary
 challenges. One of these is hardware design. The other is control algorithm
