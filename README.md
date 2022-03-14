@@ -156,7 +156,3 @@ directory.
 In case you would like to report a bug or you experience any problems with
 OpenPelt, you should open an issue using the 
 [Githab Issue Tracker](https://github.com/thejackal360/OpenPelt/issues). 
-
-
-Uses libngspice.so for version 34.
-https:// sourceforge.net/projects/ngspice/files/ng-spice-rework/old-releases/34/
