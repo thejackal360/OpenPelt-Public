@@ -26,8 +26,8 @@ hardware. We propose a faster-than-real-time temperature control simulation
 library, called OpenPelt. OpenPelt contains utilities for developing and
 verifying temperature control algorithms as well as a model of a thermoelectric
 cooler to act as the plant. OpenPelt also enables exporting simulation
-results to Fenics to simulate the control system's impact on a three-dimensional
-model.
+results to Fenics to simulate the control system's impact on three-dimensional
+heat diffusion models.
 
 # Statement of need
 Thermoelectric coolers (TECs) are semiconductor heat pumps used in various applications [@CHEIN20042207].
