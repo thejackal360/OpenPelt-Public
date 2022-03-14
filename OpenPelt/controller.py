@@ -12,6 +12,10 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 50
 
+# Note: Ensure these are sync'd with OpenPelt's constant definitions
+DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
+DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
+
 
 class controller(ABC):
     """
@@ -139,8 +143,9 @@ class pid_controller(controller):
     PID controller implementation. Inherits from abstract controller class.
     """
 
-    def __init__(self, seqr, kp, ki, kd, plate_select, samples_per_sec,
-                 simulation_timesteps):
+    def __init__(self, seqr, kp, ki, kd, plate_select,
+                 samples_per_sec = DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC,
+                 simulation_timesteps = DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE):
         """
         Initialize controller. Specify proportional gain kp, integral gain ki,
         differential gain kd, and selected plate (plate_select). Need to

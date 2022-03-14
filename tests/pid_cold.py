@@ -26,7 +26,7 @@ if __name__ == "__main__":
     cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00,
                                               20.00, 25.00],
                                               pC.get_ncs())
-    pidc = OpenPelt.pid_controller(cbs, -150.00, 0.00, 0.00,
+    pidc = OpenPelt.pid_controller(cbs, -150.00, 0.00, 0.00, \
                                    plate_select=plate_select)
     pC.set_controller_f(pidc.controller_f)
     pC.run_sim()
