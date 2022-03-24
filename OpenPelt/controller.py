@@ -1,10 +1,16 @@
 from abc import ABC, abstractmethod
 
 import random
-from .neural_networks import MLP
 from PySpice.Unit import u_V
-from torch import tensor
 from OpenPelt import TECPlate
+
+try:
+    from .neural_networks import MLP
+    from torch import tensor
+    INCLUDE_TORCH = True
+except ImportError:
+    INCLUDE_TORCH = False
+    print("Warning: cannot import torch")
 
 # RL constants
 EPS_START = 0.9
@@ -52,30 +58,30 @@ class controller(ABC):
         """
         pass
 
+if INCLUDE_TORCH:
+    class fake_neural_controller(controller):
 
-class fake_neural_controller(controller):
+        def __init__(self, seqr):
+            self.seqr = seqr
 
-    def __init__(self, seqr):
-        self.seqr = seqr
+            self.net = MLP(input_units=3,
+                           hidden_units=64,
+                           output_units=1,
+                           bias=True).eval()
 
-        self.net = MLP(input_units=3,
-                       hidden_units=64,
-                       output_units=1,
-                       bias=True).eval()
+        def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
+            x_std = (x - var[0]) / (var[1] - var[0])
+            x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
+                        feature_range[0])
+            return x_scaled
 
-    def scale(self, x, var=(-100, 100), feature_range=(-1, 1)):
-        x_std = (x - var[0]) / (var[1] - var[0])
-        x_scaled = (x_std * (feature_range[1] - feature_range[0]) +
-                    feature_range[0])
-        return x_scaled
-
-    def _controller_f(self, t, ref, sensor_dict):
-        th = self.scale(sensor_dict['th'][-1])
-        tc = self.scale(sensor_dict['tc'][-1])
-        ref = self.scale(ref)
-        self.state = tensor([th, tc, ref])
-        v = self.net(self.state).detach().numpy()[0]
-        return v @ u_V
+        def _controller_f(self, t, ref, sensor_dict):
+            th = self.scale(sensor_dict['th'][-1])
+            tc = self.scale(sensor_dict['tc'][-1])
+            ref = self.scale(ref)
+            self.state = tensor([th, tc, ref])
+            v = self.net(self.state).detach().numpy()[0]
+            return v @ u_V
 
 
 class random_agent_controller(controller):

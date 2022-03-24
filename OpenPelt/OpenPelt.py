@@ -12,7 +12,9 @@ from enum import Enum
 import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
-import PySpice.Spice.NgSpice.Shared
+# import PySpice.Spice.NgSpice.Shared
+import PySpice.Spice.OpenSPICE.Shared
+import OpenSPICE
 
 try:
     from fenics import Constant, SubDomain, near
@@ -22,7 +24,13 @@ except ImportError:
     print("Warning: Cannot import fenics")
 
 import numpy as np
-import torch
+
+try:
+    import torch
+    INCLUDE_TORCH = True
+except ImportError:
+    INCLUDE_TORCH = False
+    print("Warning: cannot import torch")
 
 # Simulation Parameters
 
@@ -83,8 +91,9 @@ def seed_everything(seed=1234):
     tcseed = random.randint(1, 1E6)
     npseed = random.randint(1, 1E6)
     ospyseed = random.randint(1, 1E6)
-    torch.manual_seed(tseed)
-    torch.cuda.manual_seed_all(tcseed)
+    if INCLUDE_TORCH:
+        torch.manual_seed(tseed)
+        torch.cuda.manual_seed_all(tcseed)
     np.random.seed(npseed)
     os.environ['PYTHONHASHSEED'] = str(ospyseed)
 
@@ -225,12 +234,12 @@ class tec_plant(Circuit):
         self.BehavioralSource('1',
                               self.gnd,
                               '1',
-                              i='((v(13) - v(12))/{})*(((v(13) - v(12))/{})*{}+{}*(v(1)-v(2)))'.format(_rp, _rp, _rp, _se))
+                              i='((v(13)-v(12))/{})*(((v(13)-v(12))/{})*{}+{}*(v(1)-v(2)))'.format(_rp, _rp, _rp, _se))
         self.R('3', '1', '2', _k_m@u_Ohm)
         self.BehavioralSource('2',
                               '2',
                               '1',
-                              i='((v(13) - v(12))/{})*({}*v(2)-0.9*((v(13) - v(12))/{}))'.format(_rp, _se, _rp))
+                              i='((v(13)-v(12))/{})*({}*v(2)-0.9*((v(13)-v(12))/{}))'.format(_rp, _se, _rp))
         self.C('3', '2', self.gnd, _c_c@u_F, initial_condition=_tamb@u_V)
         # THERMAL MASS
         self.R('4', '5', '2', _k_sil@u_Ohm)
@@ -322,6 +331,7 @@ class tec_plant(Circuit):
             ivar_vals = self.ncs.get_i_arr()
         else:
             ivar_vals = self.ncs.get_t()
+        print("len(ivar_vals) ({}) == len(self.ncs.get_th_actual()) ({})".format(len(ivar_vals), len(self.ncs.get_th_actual())))
         assert len(ivar_vals) == len(self.ncs.get_th_actual())
         assert len(ivar_vals) == len(self.ncs.get_tc_actual())
         if ivar == IndVar.TIME:
@@ -433,7 +443,7 @@ class tec_plant(Circuit):
         Return simulator object that uses tec_lib ngspice shared library
         object.
         """
-        return self.simulator(simulator='ngspice-shared',
+        return self.simulator(simulator='OpenSPICE',
                               ngspice_shared=self.ncs)
 
     def run_sim(self):
@@ -469,7 +479,7 @@ class tec_plant(Circuit):
         num_incr = (val_max - val_min) / step_size
         assert float(int(num_incr)) == num_incr
         num_incr = int(num_incr)
-        sim = self.simulator(simulator='ngspice-shared',
+        sim = self.simulator(simulator='OpenSPICE',
                              ngspice_shared=self.ncs)
         sim.options(reltol=5e-6)
         tmp_controller_f = self.controller_f
@@ -505,9 +515,9 @@ class tec_plant(Circuit):
         return self.ncs.is_steady_state()
 
 
-class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
+class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
     """
-    Class that inherits from PySpice's NgSpiceShared class. Abstracts ngspice
+    Class that inherits from PySpice's OpenSPICEShared class. Abstracts ngspice
     details from the rest of the library.
     """
 
@@ -525,7 +535,7 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         """
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
-        PySpice.Spice.NgSpice.Shared.ffi = cffi.FFI()
+        PySpice.Spice.OpenSPICE.Shared.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.ref = ref
@@ -546,6 +556,8 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         self.steady_state_cycles = steady_state_cycles
         self.th_sensor_error = []
         self.tc_sensor_error = []
+        OpenSPICE.set_get_vsrc(self.get_vsrc_data)
+        OpenSPICE.set_send_data(self.send_data)
 
     def get_ref_arr(self):
         """
