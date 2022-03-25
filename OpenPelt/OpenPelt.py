@@ -441,7 +441,6 @@ class tec_plant(Circuit):
             ivar_vals = self.ncs.get_i_arr()
         else:
             ivar_vals = self.ncs.get_t()
-        print("len(ivar_vals) ({}) == len(self.ncs.get_th_actual()) ({})".format(len(ivar_vals), len(self.ncs.get_th_actual())))
         assert len(ivar_vals) == len(self.ncs.get_th_actual())
         assert len(ivar_vals) == len(self.ncs.get_tc_actual())
         if ivar == IndVar.TIME:
