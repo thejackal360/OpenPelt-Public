@@ -178,6 +178,116 @@ if INCLUDE_FENICS:
         def inside(self, x, on_boundary):
             return on_boundary and near(x[1], -0.002, FENICS_TOL)
 
+class rc_ckt_plant(Circuit):
+
+    def __init__(self,
+                 name,
+                 controller_f,
+                 steady_state_cycles=1000,
+                 res=1.00,
+                 cap=1.00,
+                 sim_time_in_s=DEFAULT_SIMULATION_TIME_IN_SEC,
+                 sim_timesteps_per_sensor_sample=DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
+                 temp_sensor_samples_per_s=DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC):
+        Circuit.__init__(self, name)
+        self.controller_f = controller_f
+        self.sim_time_in_s = sim_time_in_s
+        self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
+        self.temp_sensor_samples_per_s = temp_sensor_samples_per_s
+        self.R('1', '1', '2', res @ u_Ohm)
+        self.C('1', '2', self.gnd, cap @ u_F, initial_condition=0.00@u_V)
+        self.ncs = rc_ckt_lib(self.controller_f,
+                              send_data=True)
+        self.V(INPUT_SRC, '1', self.gnd, 'dc 0 external')
+
+    def set_controller_f(self, controller_f):
+        self.controller_f = controller_f
+        self.ncs.set_controller_f(self.controller_f)
+
+    def get_ncs(self):
+        return self.ncs
+
+    def clear(self):
+        self.ncs.clear()
+
+    def plot_output_v(self):
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ivar_vals = self.ncs.get_t()
+        v_leg_0, = ax.plot(ivar_vals,
+                           self.ncs.get_v(),
+                           '-k', lw=1.5,
+                           label="Capacitor Voltage [V]", c="r")
+        ax.set_xlabel("Time [s]", fontsize=18,
+                      weight='bold', color='black')
+        ax.set_ylabel("Voltage [V]", fontsize=18,
+                      weight='bold', color='black')
+        ax.grid()
+        ax.legend(fontsize=16)
+
+    def get_t(self):
+        return self.ncs.get_t()
+
+    def get_v(self):
+        return self.ncs.get_v()
+
+    def _simulator(self):
+        return self.simulator(simulator='OpenSPICE',
+                              ngspice_shared=self.ncs)
+
+    def run_sim(self):
+        sim = self._simulator()
+        sim.options(reltol=5e-6)
+        anls = sim.transient(step_time=(1.00/(self.temp_sensor_samples_per_s *
+                                              self.sim_timesteps_per_sensor_sample))@u_s,
+                             end_time=self.sim_time_in_s@u_s,
+                             use_initial_condition=True)
+
+class rc_ckt_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
+
+    def __init__(self,
+                 controller_f,
+                 plate_select=TECPlate.HOT_SIDE,
+                 sim_timesteps_per_sensor_sample=DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
+                 **kwargs):
+        # Temporary workaround:
+        # https://github.com/FabriceSalvaire/PySpice/pull/94
+        PySpice.Spice.OpenSPICE.Shared.ffi = cffi.FFI()
+        super().__init__(**kwargs)
+        self.controller_f = controller_f
+        self.t = []
+        self.v = []
+        self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
+        self.timestep_counter = self.sim_timesteps_per_sensor_sample
+        self.next_v = 0.00
+        OpenSPICE.set_get_vsrc(self.get_vsrc_data)
+        OpenSPICE.set_send_data(self.send_data)
+
+    def set_controller_f(self, controller_f):
+        self.controller_f = controller_f
+
+    def send_data(self, actual_vector_values, number_of_vectors, ngspice_id):
+        self.v.append(actual_vector_values['V(2)'].real)
+        self.next_v = self.controller_f()
+        self.t.append(actual_vector_values['time'].real)
+        return 0
+
+    def clear(self):
+        self.t = []
+        self.v = []
+        self.timestep_counter = self.sim_timesteps_per_sensor_sample
+        self.next_v = 0.00
+        self.next_i = 0.00
+
+    def get_t(self):
+        return self.t
+
+    def get_v(self):
+        return self.v
+
+    def get_vsrc_data(self, voltage, time, node, ngspice_id):
+        voltage[0] = self.next_v
+        return 0
 
 class tec_plant(Circuit):
     """
