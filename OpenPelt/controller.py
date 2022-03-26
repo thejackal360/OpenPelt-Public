@@ -117,7 +117,7 @@ class random_agent_controller(controller):
         v = self.agent(self.state)
         if self.freeze:
             v = 6.0
-        return v @ u_V
+        return v
 
 
 class bang_bang_controller(controller):

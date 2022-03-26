@@ -313,7 +313,7 @@ class rc_ckt_plant(Circuit):
         self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
         self.temp_sensor_samples_per_s = temp_sensor_samples_per_s
         self.R('1', '1', '2', res @ u_Ohm)
-        self.C('1', '2', self.gnd, cap @ u_F, initial_condition=0.00@u_V)
+        self.C('1', '2', self.gnd, cap @ u_F, initial_condition=0.00)
         self.ncs = rc_ckt_lib(self.controller_f,
                               send_data=True)
         self.V(INPUT_SRC, '1', self.gnd, 'dc 0 external')
@@ -715,7 +715,8 @@ class tec_plant(Circuit):
         if self.sig_type == Signal.VOLTAGE:
             v_range = np.linspace(val_min, val_max, num_incr)
             for _v in v_range:
-                self.set_controller_f(lambda _t, _dict : _v@u_V)
+                print("Testing {}V input...".format(_v))
+                self.set_controller_f(lambda _t, _dict : _v)
                 tmp_v, tmp_th, tmp_tc = self.run_sim()
                 th.append(tmp_th)
                 tc.append(tmp_tc)
@@ -723,7 +724,8 @@ class tec_plant(Circuit):
         else:
             i_range = np.linspace(val_min, val_max, num_incr)
             for _i in i_range:
-                self.set_controller_f(lambda _t, _dict : _i@u_A)
+                print("Testing {}A input...".format(_i))
+                self.set_controller_f(lambda _t, _dict : _i)
                 tmp_v, tmp_th, tmp_tc = self.run_sim()
                 th.append(tmp_th)
                 tc.append(tmp_tc)
