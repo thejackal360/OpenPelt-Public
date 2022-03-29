@@ -14,7 +14,7 @@ from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 # import PySpice.Spice.NgSpice.Shared
 import PySpice.Spice.OpenSPICE.Shared
-import OpenSPICE
+from PySpice.Spice.OpenSPICE import set_get_vsrc, set_get_isrc, set_send_data
 
 try:
     from fenics import Constant, SubDomain, near
@@ -195,8 +195,8 @@ class op_amp_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
         self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
-        OpenSPICE.set_get_vsrc(self.get_vsrc_data)
-        OpenSPICE.set_send_data(self.send_data)
+        set_get_vsrc(self.get_vsrc_data)
+        set_send_data(self.send_data)
 
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
@@ -378,8 +378,8 @@ class rc_ckt_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
         self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
-        OpenSPICE.set_get_vsrc(self.get_vsrc_data)
-        OpenSPICE.set_send_data(self.send_data)
+        set_get_vsrc(self.get_vsrc_data)
+        set_send_data(self.send_data)
 
     def set_controller_f(self, controller_f):
         self.controller_f = controller_f
@@ -785,9 +785,9 @@ class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         self.steady_state_cycles = steady_state_cycles
         self.th_sensor_error = []
         self.tc_sensor_error = []
-        OpenSPICE.set_get_vsrc(self.get_vsrc_data)
-        OpenSPICE.set_get_isrc(self.get_isrc_data)
-        OpenSPICE.set_send_data(self.send_data)
+        set_get_vsrc(self.get_vsrc_data)
+        set_get_isrc(self.get_isrc_data)
+        set_send_data(self.send_data)
 
     def get_ref_arr(self):
         """
