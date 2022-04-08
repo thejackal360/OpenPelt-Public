@@ -1,0 +1,3 @@
+[submodule "thejackal360-ngspice"]
+	path = thejackal360-ngspice
+	url = https://git.code.sf.net/u/thejackal360/ngspice

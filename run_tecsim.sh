@@ -43,4 +43,4 @@ fi
 run_command="./tests/$var"
 echo $run_command
 
-LD_LIBRARY_PATH=$(pwd)/ngspice $run_command
+LD_LIBRARY_PATH=$(pwd)/thejackal360-ngspice/lib $run_command

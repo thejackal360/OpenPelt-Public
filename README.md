@@ -42,11 +42,12 @@ $ pip3 (or pip) install -r requirements.txt
 ```
 Then you can clone OpenPelt repository into a local directory on your machine:
 ```
-$ git clone https://github.com/thejackal360/OpenPelt.git
+$ git clone --recursive https://github.com/thejackal360/OpenPelt.git
 ```
-Finally you have to install OpenPelt onto your system
+Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
 $ cd OpenPelt/
+$ ./build_ngspice.sh
 $ pip3 (or pip) install .
 ```
 If you'd like to try the provided tests you can just run them by executing the
@@ -138,9 +139,6 @@ where *name_of_script* can be one of the following:
     - GCC 9.3.0 and 9.4.0
     - Python 3.8.10
     - x86_64 64bit
-
-Note: libngspice.so compiled using GCC 9.4.0. thejackal360's ngspice fork is the
-used as the source: https://sourceforge.net/u/thejackal360/ngspice/ci/master/tree/.
 
 ## Contributing Guidelines
 
