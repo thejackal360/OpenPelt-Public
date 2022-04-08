@@ -44,11 +44,12 @@ $ pip3 (or pip) install -r requirements.txt
 ```
 Then you can clone OpenPelt repository into a local directory on your machine:
 ```
-$ git clone https://github.com/thejackal360/OpenPelt.git
+$ git clone --recursive https://github.com/thejackal360/OpenPelt.git
 ```
-Finally you have to install OpenPelt onto your system
+Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
 $ cd OpenPelt/
+$ ./build_ngspice.sh
 $ pip3 (or pip) install .
 ```
 If you'd like to try the provided tests you can just run them by executing the
