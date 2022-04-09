@@ -441,8 +441,29 @@ class tec_plant(Circuit):
         Instantiate circuit with controller algorithm, whose function is
         specified by controller_f.
 
+        name is the name of the TEC circuit model. Please provide a string.
+
         sig_type specifies whether we're driving a voltage or a current from
         the controller.
+
+        The mid-IR detector cooler is designed using a thermoelectric cooler (TEC) sandwiched
+        between two heat sinks, one for the TEC's hot plate and one for the TEC's cold plate.
+        plate_select specifies the heat sink (either the one connected to the hot side,
+        TECPlate.HOT_SIDE, or the one connected to the cold side) whose temperature we are
+        controlling. Imagine that the sensor is connected within the heat sink specified.
+
+        _k_rad is the hot side heat sink's thermal resistance. _c_rad is the hot side heat
+        sink's thermal capacitance. Similarly, _k_conint is the cold side heat sink's
+        thermal resistance, and _c_conint is the cold side heat sink's thermal capacitance.
+        _c_h is the hot side TEC plate's thermal capacitance. _c_c is the cold side TEC plate's
+        thermal capacitance. _k_m is the internal thermal resistance between the TEC's hot plate
+        and its cold plate.
+
+        _rp is the electrical resistance of the TEC. _se is the TEC's Seebeck coefficient.
+        This accounts for the thermoelectric generation effect that occurs when the temperature
+        gradient across the TEC plates is formed.
+
+        _tamb is the ambient temperature of the surrounding environment.
 
         The timestep parameters sim_timesteps_per_sensor_sample and temp_sensor_samples_per_s
         are used to determine a suggested timestep size. However, it should be emphasized
@@ -451,6 +472,9 @@ class tec_plant(Circuit):
         reltol. Because of this, steady_state_cycles is somewhat ambiguous as well since it
         is given in timesteps.
         """
+        # TODO: Support switching the sensor position between the heat sink and the TEC plate.
+        # This would physically reflect a thermocouple sandwiched between the heat sink and
+        # the TEC plate.
         Circuit.__init__(self, name)
         self.controller_f = controller_f
         self.sig_type = sig_type
@@ -482,14 +506,15 @@ class tec_plant(Circuit):
         self.R('5', '5', '3', _k_conint@u_Ohm)
         # ELECTRICAL PELTIER MODEL
         self.V('2', '11', '13', 0.00@u_V)
-        self.R('6', '13', '12', RP@u_Ohm)
+        self.R('6', '13', '12', _rp@u_Ohm)
         self.VCVS('1', '12', self.gnd, '1', '2', voltage_gain=_se)
         # EXTERNAL SOURCE
         self.plate_select = plate_select
         self.ncs = tec_lib(self.controller_f,
                            send_data=True,
                            plate_select=self.plate_select,
-                           steady_state_cycles=steady_state_cycles)
+                           steady_state_cycles=steady_state_cycles,
+                           _rp=RP)
         if sig_type == Signal.VOLTAGE:
             self.V(INPUT_SRC, '11', self.gnd, 'dc 0 external')
         else:
@@ -786,13 +811,25 @@ class tec_lib(SimSharedClass):
                  controller_f,
                  ref=0.00,
                  steady_state_cycles=1500,
+                 _rp=RP,
                  plate_select=TECPlate.HOT_SIDE,
                  sim_timesteps_per_sensor_sample=DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE,
                  **kwargs):
         """
-        Initialize tec_lib. steady_state_cycles defines the number of
-        cycles for which values must be nearly constant before considering
-        system to be in steady state.
+        Initialize tec_lib. controller_f defines the control algorithm that steers the
+        plant's output.
+
+        steady_state_cycles defines the number of cycles for which values must be nearly
+        constant before considering the system to be in steady state.
+
+        _rp is the electrical resistance of the TEC. This is necessary for calculating
+        currents to log to the self.i array.
+
+        plate_select is the heat sink connected to the TEC plate whose temperature we
+        are controlling.
+
+        sim_timesteps_per_sensor_sample is the number of simulation timesteps that occur
+        per sensor sample.
         """
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
@@ -810,6 +847,7 @@ class tec_lib(SimSharedClass):
         self.v = []
         self.i = []
         self.qc = []
+        self._rp = RP
         self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
         self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
@@ -871,6 +909,13 @@ class tec_lib(SimSharedClass):
         """
         Function that determines how to collect data from each timestep of
         ngspice simulation.
+
+        actual_vector_values is a dictionary mapping the strings 'V(node_name)' and
+        'time' to their respective values (Note: V(node_name) represents voltage
+        at node node_name).
+
+        Please see the ngspice documentation for more details on the
+        send_data function.
         """
         if self.timestep_counter == self.sim_timesteps_per_sensor_sample:
             assert len(self.th_sensor) == len(self.tc_sensor)
@@ -916,7 +961,7 @@ class tec_lib(SimSharedClass):
             round(K_to_C(actual_vector_values['V({})'.format(COLD_SIDE_NODE)].real), ROUND_DIGITS))
         self.v.append(actual_vector_values['V(11)'].real)
         self.i.append(
-            (actual_vector_values['V(13)'].real - actual_vector_values['V(12)'].real)/RP)
+            (actual_vector_values['V(13)'].real - actual_vector_values['V(12)'].real)/self._rp)
         self.qc.append(
             (actual_vector_values['V(1)'].real - actual_vector_values['V(45)'].real)/R_MEAS)
         try:
@@ -998,6 +1043,16 @@ class tec_lib(SimSharedClass):
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         """
         Set external voltage source driving value in the ngspice circuit.
+
+        voltage is an array whose zeroth element is the only one of interest.
+        The zeroth element is assigned by get_vsrc_data to the voltage output
+        from the controller, which serves as the input to the TEC plant circuit
+        model.
+
+        The other parameters are as of now unused. The ngspice documentation should
+        include additional details on this function since it is provided to
+        ngspice as a function pointer and called by ngspice whenever an
+        external voltage source's value is needed.
         """
         voltage[0] = self.next_v
         return 0
@@ -1005,6 +1060,8 @@ class tec_lib(SimSharedClass):
     def get_isrc_data(self, current, time, node, ngspice_id):
         """
         Set external current source driving value in the ngspice circuit.
+
+        Similar to get_vsrc_data, but for external current sources instead.
         """
         current[0] = self.next_i
         return 0

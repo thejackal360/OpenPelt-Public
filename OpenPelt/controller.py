@@ -155,7 +155,7 @@ class pid_controller(controller):
         """
         Initialize controller. Specify proportional gain kp, integral gain ki,
         differential gain kd, and selected plate (plate_select). Need to
-        specify reference value sequencer instance as well
+        specify reference value sequencer (seqr) instance as well
         """
         # https://en.wikipedia.org/wiki/PID_controller
         self.seqr = seqr
