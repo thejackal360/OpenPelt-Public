@@ -37,14 +37,14 @@ we provide installation instructions only for Linux platforms.
 
 ### Linux
 
-In order to install OpenPelt on Linux, first you have to install all the necessary
-dependencies:
+Fist clone the OpenPelt repository into a local directory on your machine:
+```
+$ git clone --recursive https://github.com/thejackal360/OpenPelt-Public.git
+```
+In order to install OpenPelt on Linux, fisrt you have to install all the 
+necessary dependencies:
 ```
 $ pip3 (or pip) install -r requirements.txt
-```
-Then you can clone OpenPelt repository into a local directory on your machine:
-```
-$ git clone --recursive https://github.com/thejackal360/OpenPelt.git
 ```
 Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
@@ -57,7 +57,7 @@ following command from within the OpenPelt directory
 ```
 $ ./run_tecsim name_of_the_test
 ```
-The names of all the available tests are listed [here](https://github.com/thejackal360/OpenPelt#available-tests). 
+The names of all the available tests are listed [here](https://github.com/thejackal360/OpenPelt-Public#available-tests). 
 
 
 ## Example usage
@@ -150,7 +150,7 @@ where *name_of_script* can be one of the following:
 ## Contributing Guidelines
 
 In case you would like to contribute to OpenPelt, you should use the [Github Pull
-Request](https://github.com/thejackal360/OpenPelt/pulls) system. 
+Request](https://github.com/thejackal360/OpenPelt-Public/pulls) system. 
 
 
 ## For more help
@@ -162,4 +162,4 @@ directory.
 
 In case you would like to report a bug or you experience any problems with
 OpenPelt, you should open an issue using the 
-[Githab Issue Tracker](https://github.com/thejackal360/OpenPelt/issues). 
+[Github Issue Tracker](https://github.com/thejackal360/OpenPelt-Public/issues). 
