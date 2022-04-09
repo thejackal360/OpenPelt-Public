@@ -108,7 +108,9 @@ class Signal(Enum):
 
 class TECPlate(Enum):
     """
-    Used to select hot or cold plate on TEC.
+    Used to select hot or cold plate on TEC (more specifically, the heat
+    sink connected to the TEC's hot plate or the heat sink connected
+    to the TEC's cold plate)
     """
     HOT_SIDE = 1
     COLD_SIDE = 2
@@ -133,6 +135,8 @@ class sequencer(ABC):
     def get_ref(self):
         """
         Abstract method intended to return next reference value in the sequence
+
+        @return: Return the next reference value in the sequence
         """
         pass
 
@@ -150,9 +154,10 @@ class circular_buffer_sequencer(sequencer):
 
         ngspice_custom_lib is of the class type tec_lib.
 
-        @param sequence: a list represent the sequence of reference values
+        @param sequence: a list representing the sequence of reference values
         for the controller in use. The circular buffer object will cycle through
         these values and then jump back to the beginning after hitting the end.
+
         @param ngspice_custom_lib: tec_lib object used as an interface with
         the ngspice simulator. Need to make sure reference value in ngspice_custom_lib
         is synchronized with value in circular buffer.
@@ -184,16 +189,25 @@ class circular_buffer_sequencer(sequencer):
 if INCLUDE_FENICS:
     class BottomBoundary(SubDomain):
         """
-        Subdomain boundary for TEC plate heat sink in Fenics.
+        Subdomain for TEC plate heat sink in Fenics.
         """
         def inside(self, x, on_boundary):
+            """
+            Checks whether we're at the TEC plate heat sink
+            boundary. The subdomain comprises the heat sink
+            boundary and closeby surrounding space.
+
+            @param on_boundary: bool - are we directly on boundary?
+
+            @param x: coordinate of a given point
+            """
             return on_boundary and near(x[1], -0.002, FENICS_TOL)
 
 
 class tec_plant(Circuit):
     """
     tec_plant class, inherits from PySpice's Circuit object. Meant to be
-    a electro-thermal circuit model of a TEC-based mid-IR detector cooler.
+    an electro-thermal circuit model of a TEC-based mid-IR detector cooler.
     """
     def __init__(self,
                  name,
@@ -376,6 +390,8 @@ class tec_plant(Circuit):
         """
         Get the underlying tec_lib object that directly interfaces with
         ngspice library using PySpice.
+
+        @return: Return internal tec_lib object
         """
         return self.ncs
 
@@ -553,7 +569,7 @@ class tec_plant(Circuit):
         size. The timestep size can change throughout the simulation as well.
 
         Note: reltol is defaulted to 5e-6. This is the reltol in the original paper.
-        Future changes may need to adapt this for different scenarios, or simple
+        Future changes may need to adapt this for different scenarios, or simply
         offer it as a parameter to the end user.
 
         @return: The final driving voltage, the final hot side heat sink temperature,
@@ -575,8 +591,10 @@ class tec_plant(Circuit):
         Acts as a DC sweep function. May contain errors since behavior is not
         validated.
 
-        @param val_min: Minimum driving votlage or current
+        @param val_min: Minimum driving voltage or current
+
         @param val_max: Maximum driving voltage or current
+
         @param step_size: step size for range from val_min to val_max
         """
         num_incr = (val_max - val_min) / step_size
@@ -907,18 +925,19 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         """
         Set external voltage source driving value in the ngspice circuit.
+        Please see ngspice documentation for more details. Only voltage argument
+        is used.
 
         @param voltage: voltage is an array whose zeroth element is the
         only one of interest. The zeroth element is assigned by get_vsrc_data
         to the voltage output from the controller, which serves as the input
         to the TEC plant circuit model.
 
-        @param time: current simulation timestep
+        @param time: unused argument
 
-        @node: most likely positive node of external voltage source; undefined
-        in ngspice documentation and unused by function as of now
+        @param node: unused argument
 
-        @param ngspice_id: id corresponding to ngspice thread
+        @param ngspice_id: unused argument
 
         @return: Success or failure exit code
         """
@@ -928,6 +947,8 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
     def get_isrc_data(self, current, time, node, ngspice_id):
         """
         Set external current source driving value in the ngspice circuit.
+        Please see ngspice documentation for more details. Only current argument
+        is used.
 
         Similar to get_vsrc_data, but for external current sources instead.
 
@@ -936,12 +957,11 @@ class tec_lib(PySpice.Spice.NgSpice.Shared.NgSpiceShared):
         to the current output from the controller, which serves as the input
         to the TEC plant circuit model.
 
-        @param time: current simulation timestep
+        @param time: unused argument
 
-        @node: undefined in ngspice documentation and unused by function
-        as of now
+        @param node: unused argument
 
-        @param ngspice_id: id corresponding to ngspice thread
+        @param ngspice_id: unused argument
 
         @return: Success or failure exit code
         """

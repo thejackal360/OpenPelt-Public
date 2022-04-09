@@ -23,13 +23,14 @@ class controller(ABC):
     controllers.
     """
 
-    """
-    Set the sequencer in use. Intended to be an instance of a subclass of
-    sequencer.
-
-    @param seqr: sequencer object in use
-    """
     def set_seqr(self, seqr):
+        """
+        Set the sequencer in use. Intended to be an instance of a subclass of
+        sequencer.
+
+        @param seqr: sequencer object in use
+        """
+
         self.seqr = seqr
 
     def controller_f(self, t, sensor_dict):
@@ -42,6 +43,8 @@ class controller(ABC):
 
         @param sensor_dict: sensor_dict maps "th" or "tc" strings to
         an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
 
         self.ref = self.seqr.get_ref()
@@ -153,6 +156,8 @@ class bang_bang_controller(controller):
 
         @param sensor_dict: sensor_dict maps "th" or "tc" strings to
         an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
         if sensor_dict["th"][-1] < ref:
             return 14.00
@@ -211,6 +216,8 @@ class pid_controller(controller):
 
         @param sensor_dict: sensor_dict maps "th" or "tc" strings to
         an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
         error = ref - sensor_dict["th" if self.plate_select
                                   == TECPlate.HOT_SIDE else "tc"][-1]
