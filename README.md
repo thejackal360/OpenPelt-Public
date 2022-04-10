@@ -39,7 +39,7 @@ Fist clone the OpenPelt repository into a local directory on your machine:
 ```
 $ git clone --recursive https://github.com/thejackal360/OpenPelt-Public.git
 ```
-Notice that the rucursive flag is necessary to clone the NgSpice submodule. 
+Notice that the --recursive flag is necessary to clone the NgSpice submodule. 
 
 In order to install OpenPelt on Linux, fisrt you have to install all the 
 necessary dependencies:
@@ -68,7 +68,7 @@ $ pip3 (or pip) install .
 If you'd like to try the provided tests you can just run them by executing the
 following command from within the OpenPelt directory
 ```
-$ ./run_tecsim name_of_the_test
+$ ./run_tecsim.sh name_of_the_test
 ```
 The names of all the available tests are listed [here](https://github.com/thejackal360/OpenPelt-Public#available-tests). 
 
