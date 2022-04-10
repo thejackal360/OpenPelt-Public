@@ -129,6 +129,16 @@ And you can run the script as
 $ python (or python3) tests/basic_bang_bang.py. 
 ```
 
+## Controller Development
+
+To develop new controller algorithms, please take a look at OpenPelt/controller.py.
+Simply create a class that inherits the controller abstract class. The user is
+responsible for implementing the _controller_f function.
+
+Please look at the source code for tests in the tests/ directory. These tests
+demonstrate how to use controllers on the TEC circuit model.
+
+>>>>>>> 36f2866 (Added controller development details to README)
 ## Available tests
 
 All the tests provided by OpenPelt can run by executing
