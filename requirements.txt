@@ -3,5 +3,6 @@ matplotlib==3.3.4
 cffi==1.15.0
 pyspice==1.5
 omnipyseed==0.0.3
+pytest==5.4.3
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch==1.9.1+cpu
