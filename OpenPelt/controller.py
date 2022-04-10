@@ -23,11 +23,14 @@ class controller(ABC):
     controllers.
     """
 
-    """
-    Set the sequencer in use. Intended to be an instance of a subclass of
-    sequencer.
-    """
     def set_seqr(self, seqr):
+        """
+        Set the sequencer in use. Intended to be an instance of a subclass of
+        sequencer.
+
+        @param seqr: sequencer object in use
+        """
+
         self.seqr = seqr
 
     def controller_f(self, t, sensor_dict):
@@ -36,8 +39,12 @@ class controller(ABC):
         is interpreted as either a current or voltage, but this is not the
         responsibility of the controller class to specify.
 
-        t is the current timestep. sensor_dict maps "th" or "tc" strings to
+        @param t: t is the current timestep.
+
+        @param sensor_dict: sensor_dict maps "th" or "tc" strings to
         an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
 
         self.ref = self.seqr.get_ref()
@@ -49,6 +56,14 @@ class controller(ABC):
         Abstract method called by controller_f. Reference value is explicitly
         specified here. This function is internal to the abstract controller
         class.
+
+        @param t: t is the current timestep.
+
+        @param ref: reference temperature to which the controller steers the respective
+        plate's heat sink
+
+        @param sensor_dict: sensor_dict maps "th" or "tc" strings to
+        an array of historical values of hot side and cold side temperatures.
         """
         pass
 
@@ -124,6 +139,8 @@ class bang_bang_controller(controller):
         """
         Initialize controller. Need to specify reference value sequencer
         instance.
+
+        @param seqr: sequencer object in use
         """
         self.seqr = seqr
 
@@ -131,6 +148,16 @@ class bang_bang_controller(controller):
         """
         Bang-bang controller function. Check most recent hot plate temperature
         and drive 14.00 (usually volts) if below ref.
+
+        @param t: t is the current timestep.
+
+        @param ref: reference temperature to which the controller steers the respective
+        plate's heat sink
+
+        @param sensor_dict: sensor_dict maps "th" or "tc" strings to
+        an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
         if sensor_dict["th"][-1] < ref:
             return 14.00
@@ -150,6 +177,23 @@ class pid_controller(controller):
         Initialize controller. Specify proportional gain kp, integral gain ki,
         differential gain kd, and selected plate (plate_select). Need to
         specify reference value sequencer (seqr) instance as well
+
+        @param seqr: sequencer object in use
+
+        @param kp: proportional gain
+
+        @param ki: integral gain
+
+        @param kd: differential gain
+
+        @param plate_select: selected plate's corresponding heat sink whose
+        temperature we are controlling (TECPlate.HOT_SIDE or TECPlate.COLD_SIDE)
+
+        @param samples_per_sec: the number of samples taken by the sensor per
+        second
+
+        @param simulation_timesteps: the number of simulation timesteps per
+        sensor sample
         """
         # https://en.wikipedia.org/wiki/PID_controller
         self.seqr = seqr
@@ -164,6 +208,16 @@ class pid_controller(controller):
     def _controller_f(self, t, ref, sensor_dict):
         """
         Clamp outputs at 16.00 at the high end and -6.00 at the low end.
+
+        @param t: t is the current timestep.
+
+        @param ref: reference temperature to which the controller steers the respective
+        plate's heat sink
+
+        @param sensor_dict: sensor_dict maps "th" or "tc" strings to
+        an array of historical values of hot side and cold side temperatures.
+
+        @return: Output value to drive TEC circuit model
         """
         error = ref - sensor_dict["th" if self.plate_select
                                   == TECPlate.HOT_SIDE else "tc"][-1]
