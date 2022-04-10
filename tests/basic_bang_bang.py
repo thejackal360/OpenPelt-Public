@@ -52,7 +52,7 @@ if __name__ == "__main__":
         os.makedirs('./figs/')
 
     # Run the simulation of a Bang-bang controller
-    (current, heat, cool), pC = bang_bang([35.00])
+    (current, heat, cool), pC = bang_bang([45.00, 35.00, 50.00])
 
     # Plot the results using the plot_th_th method of OpenPelt
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver=False, include_ref=True)
