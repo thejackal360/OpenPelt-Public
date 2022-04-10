@@ -27,7 +27,7 @@ def pid_cold(ref_temperatures=[10.00, 15.00, 20.00, 25.00]):
        A tuple that contains
        voltage (ndarray):  The voltage that drives the circuit over time (2, N)
        heat (ndarray):     The hot plate side temperature over time (2, N)
-       coo(ndarray):       The cool plate side temperature over time (2, N)
+       cool (ndarray):     The cool plate side temperature over time (2, N)
 
        pC (OpenPelt object):   Provides all the methods implemented in OpenPelt
     """
