@@ -27,9 +27,6 @@ These are the dependencies one needs to install and use OpenPelt:
 
 A **requirements.txt** file is also included.
 
-Note: **requirements.txt** dependencies reflect ngspice OpenPelt version.
-Dependencies may be out of date for OpenSPICE version.
-
 ## Install
 
 We have installed and tested OpenPelt only on Linux for the time being. Thus
