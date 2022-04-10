@@ -27,6 +27,10 @@ These are the dependencies one needs to install and use OpenPelt:
 
 A **requirements.txt** file is also included.
 
+We are also currently using thejackal360's ngspice
+![(https://sourceforge.net/u/thejackal360/ngspice/ci/master/tree/)](fork) to simulate the thermoelectric
+cooler circuit model.
+
 
 ## Install
 
