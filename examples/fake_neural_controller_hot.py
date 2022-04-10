@@ -5,16 +5,20 @@ import os
 import OpenPelt
 import numpy
 
-from OpenPelt.controller import bang_bang_controller
+from OpenPelt.controller import fake_neural_controller
 
-TEST_NAME = "basic_bang_bang"
+from omnipyseed.seeding import universal_seed
 
 
-def bang_bang(reference_temperatures=[50.00, 30.00]):
+TEST_NAME = "random_hot"
+
+
+def neural_network_agent(ref_temperature=30.00):
     """
-    Runs a simulation of a Bang-bang controller using OpenPelt library. More
-    details about the controller can be found in the file controller.py in
-    OpenPelt directory.
+    Runs a simulation of an untrained neural network as a controller using
+    OpenPelt library.
+    This is a concept of proof demonstrating how one can use OpenPelt along
+    with Neural Networks and PyTorch to control TEC plates.
 
     Args:
         ref_temperatures (list):   A list of float numbers representing the
@@ -29,39 +33,35 @@ def bang_bang(reference_temperatures=[50.00, 30.00]):
        pC (OpenPelt object):   Provides all the methods implemented in OpenPelt
     """
     pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
-    cbs = OpenPelt.circular_buffer_sequencer(reference_temperatures,
-                                             pC.get_ncs())
-    bbc = bang_bang_controller(cbs)
-    pC.set_controller_f(bbc.controller_f)
+    cbs = OpenPelt.circular_buffer_sequencer([30.0], pC.get_ncs())
+    nc = fake_neural_controller(cbs)
+    pC.set_controller_f(nc.controller_f)
     pC.run_sim()
 
     heat = numpy.array([pC.get_t(), pC.get_th_sensor()])
     cool = numpy.array([pC.get_t(), pC.get_tc_sensor()])
-    current = numpy.array([pC.get_t(), pC.get_i_arr()])
+    voltage = numpy.array([pC.get_t(), pC.get_v_arr()])
 
-    return (current, heat, cool), pC
+    return (voltage, heat, cool), pC
 
 
 if __name__ == "__main__":
-    # Check if directory results exists otherwise create it
     if not os.path.exists('./results/'):
-        os.makedirs('./results/')
+        os.mkdirs('./results/')
 
-    # Check if directory figs exists otherwise create it
-    if not os.path.exists('./figs/'):
-        os.makedirs('./figs/')
+    # Seed everything
+    universal_seed(7777)
 
-    # Run the simulation of a Bang-bang controller
-    (current, heat, cool), pC = bang_bang([35.00])
+    # Run a simulation
+    (voltage, heat, cool), pC = neural_network_agent(ref_temperature=30.00)
 
-    # Plot the results using the plot_th_th method of OpenPelt
+    # Plot the results using the plot method of OpenPelt
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver=False, include_ref=True)
     plt.savefig('./figs/{}'.format(TEST_NAME))
 
     # Store all the data for further analysis
     numpy.save('./results/{}_time_th_sensor_curr'.format(TEST_NAME), heat)
     numpy.save('./results/{}_time_tc_sensor_curr'.format(TEST_NAME), cool)
-    numpy.save('./results/{}_time_i_curr'.format(TEST_NAME), current)
+    numpy.save('./results/{}_time_v_curr'.format(TEST_NAME), voltage)
 
-    plt.savefig('./results/{}'.format(TEST_NAME))
     plt.show()

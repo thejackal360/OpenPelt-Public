@@ -41,10 +41,25 @@ Fist clone the OpenPelt repository into a local directory on your machine:
 ```
 $ git clone --recursive https://github.com/thejackal360/OpenPelt-Public.git
 ```
+Notice that the rucursive flag is necessary to clone the NgSpice submodule. 
+
 In order to install OpenPelt on Linux, fisrt you have to install all the 
 necessary dependencies:
 ```
 $ pip3 (or pip) install -r requirements.txt
+```
+The next step is to install the NgSpice. This can be done by using the provided
+script **build_ngspice.sh**.
+```
+./build_ngspice
+```
+and add the extend the *LD_LIBRARY_PATH* environment variable to include the 
+libngspise. This can be done by adding the following line to your *.bashrc*
+file (if you use a different shell then please consult this
+[link](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
+on how to permanently add an environment variable.)
+```
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/thejackal360-ngspice/lib" >> .bashrc
 ```
 Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
@@ -109,14 +124,18 @@ if __name__ == "__main__":
 
 ```
 
+And you can run the script as
+```
+$ python (or python3) tests/basic_bang_bang.py. 
+```
 
 ## Available tests
 
 All the tests provided by OpenPelt can run by executing
 ```
-$ ./run_tecsim.sh name_of_script
+$ pytest tests/run_all.py
 ```
-where *name_of_script* can be one of the following:
+The tests included in this repository are: 
   - **basic_bang_bang** - This is a simple bang-bang controller
   - **op_point_current** - This script characterizes the hot and cold plate temperatures
   at different drive currents.
@@ -126,8 +145,23 @@ where *name_of_script* can be one of the following:
   - **pid_hot** - A PID controller that controls the temperature of the hot plate.
   - **pid_cold** - Similarly, a PID controller for controlling the temperature of the
   cold plate.
-  - **random_hot** - A very naive demo of how to use Pytorch and neural networks with
-  OpenPelt.
+
+
+## Available examples
+
+We provide three distinctive examples-proof of concepts-showing how the user
+can combine OpenPelt with other packages such as PyTorch or Fenics. The user
+can develop adaptive controllers using neural networks or reinforcement learning
+as well as they can simulate heat diffusion equations with Fenics and use them
+along with a TEC model provided by OpenPelt.
+
+The demo scripts can be found in the **examples** directory. 
+  - **fake_neural_network** - An untrained neural network used as proof of concept
+  demonstrating how the user can use neural networks (in this case PyTorch)
+  to develop controlling algorithms.
+  - **random_hot** - A very naive demo of a random agent used as proof of concept
+  for developing reinforcement learning algorithms using OpenPelt as TEC 
+  simulated environment.
   - **fenics_heat_eqn** - This script shows how to use Fenics with OpenPelt.
  
 ## Platforms where OpenPelt (OpenSPICE version) has been tested
