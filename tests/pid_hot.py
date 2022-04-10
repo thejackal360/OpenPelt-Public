@@ -57,7 +57,7 @@ if __name__ == "__main__":
         os.makedirs('./figs/')
 
     # Run the simulation
-    (voltage, heat, cool), pC = pid_hot([45.00])
+    (voltage, heat, cool), pC = pid_hot([50.00, 35.00])
 
     # Plot the results
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver=False, include_ref=True)

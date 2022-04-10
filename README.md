@@ -57,7 +57,7 @@ file (if you use a different shell then please consult this
 [link](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
 on how to permanently add an environment variable.)
 ```
-echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/thejackal360-ngspice/lib" >> .bashrc
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/thejackal360-ngspice/lib" >> ~/.bashrc
 ```
 Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
