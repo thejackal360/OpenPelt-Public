@@ -43,7 +43,7 @@ $ git clone --recursive https://github.com/thejackal360/OpenPelt-Public.git
 ```
 Notice that the --recursive flag is necessary to clone the NgSpice submodule. 
 
-In order to install OpenPelt on Linux, fisrt you have to install all the 
+In order to install OpenPelt on Linux, first you have to install all the 
 necessary dependencies:
 ```
 $ pip3 (or pip) install -r requirements.txt
