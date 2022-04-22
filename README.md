@@ -42,6 +42,7 @@ we provide installation instructions only for Linux platforms.
 Fist clone the OpenPelt repository into a local directory on your machine:
 ```
 $ git clone --recursive https://github.com/thejackal360/OpenPelt-Public.git
+$ cd OpenPelt/
 ```
 Notice that the --recursive flag is necessary to clone the NgSpice submodule. 
 
@@ -55,18 +56,20 @@ script **build_ngspice.sh**.
 ```
 ./build_ngspice
 ```
-and add the extend the *LD_LIBRARY_PATH* environment variable to include the 
+and extend *LD_LIBRARY_PATH* environment variable to include the 
 libngspise. This can be done by adding the following line to your *.bashrc*
 file (if you use a different shell then please consult this
 [link](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
 on how to permanently add an environment variable.)
 ```
-echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/thejackal360-ngspice/lib" >> ~/.bashrc
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:PATH_TO_OpenPelt-Public/thejackal360-ngspice/lib
+```
+and source the *.bashrc* by executing the following command
+```
+$ source ~/.bashrc
 ```
 Finally you have to install OpenPelt and its ngspice submodule onto your system
 ```
-$ cd OpenPelt/
-$ ./build_ngspice.sh
 $ pip3 (or pip) install .
 ```
 If you'd like to try the provided tests you can just run them by executing the
