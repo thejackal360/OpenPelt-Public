@@ -42,9 +42,13 @@ $ cd OpenPelt/
 Notice that the --recursive flag is necessary to clone the NgSpice submodule. 
 
 In order to install OpenPelt on Linux, first you have to install all the 
-necessary dependencies:
+necessary dependencies (including bison and flex):
 ```
 $ pip3 (or pip) install -r requirements.txt
+$ sudo apt install bison flex (on Ubuntu)
+
+$ sudo dnf install flex-devel bison-devel (on Fedora)
+$ sudo pacman -Syu bison flex (on Arch Linux)
 ```
 The next step is to install the NgSpice. This can be done by using the provided
 script **build_ngspice.sh**.
