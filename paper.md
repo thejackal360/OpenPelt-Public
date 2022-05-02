@@ -117,7 +117,7 @@ various gas concentrations, humidity levels, and temperature to be controlled.
 The ``tec_plant`` model supports preliminary three-dimensional finite element simulation
 as well. Class methods enable the user to incorporate the results of the
 controller simulation into a three-dimensional model described using the  
-Fenics library [@LoggEtal2012] [@LoggWells2010]. For the time being OpenPelt
+Fenics library [@LoggEtal2012; @LoggWells2010]. For the time being OpenPelt
 supports only legacy Fenics. However, it's up to end-users if they would like 
 to use the most modern Fenics implementation. 
 Thus, users can see how the TEC interacts with more complex systems.
@@ -128,7 +128,6 @@ that drives a constant 2.1A current [@848895].
 
 <div style="text-align:center">![](./figs/transient.png)</div>
 
-``
         plate_select = OpenPelt.TECPlate.HOT_SIDE
         pC = OpenPelt.tec_plant("Detector",
                                   lambda t , Th_arr : 2.1@u_A,
@@ -137,7 +136,6 @@ that drives a constant 2.1A current [@848895].
         pC.run_sim()
         pC.plot_th_tc(OpenPelt.IndVar.TIME)
         plt.show()
-``
 
 We have also developed proportional temperature controllers using OpenPelt.
 OpenPelt provides functionality for cycling through different reference
@@ -145,7 +143,6 @@ temperatures in a test sequence.
 
 <div style="text-align:center">![](./figs/pid_hot.png)</div>
 
-``
         plate_select = OpenPelt.TECPlate.HOT_SIDE
         pC = OpenPelt.tec_plant("Detector",
                                 None,
@@ -158,11 +155,9 @@ temperatures in a test sequence.
         pC.run_sim()
         pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
         plt.show()
-``
 
 <div style="text-align:center">![](./figs/pid_cold.png)</div>
 
-``
         plate_select = OpenPelt.TECPlate.COLD_SIDE
         pC = OpenPelt.tec_plant("Detector",
                                 None,
@@ -177,6 +172,5 @@ temperatures in a test sequence.
         pC.run_sim()
         pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver = False, include_ref = True)
         plt.show()
-``
 
 # Bibliography
