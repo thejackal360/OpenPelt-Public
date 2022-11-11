@@ -14,7 +14,7 @@ if __name__ == "__main__":
         os.makedirs('./results/')
     if not os.path.exists('./figs/'):
         os.makedirs('./figs/')
-    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
+    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE, steady_state_cycles=400)
     cbs = OpenPelt.circular_buffer_sequencer([50.00, 30.00], pC.get_ncs())
     bbc = bang_bang_controller(cbs)
     pC.set_controller_f(bbc.controller_f)

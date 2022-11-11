@@ -22,7 +22,8 @@ if __name__ == "__main__":
     pC = OpenPelt.tec_plant("Detector",
                             None,
                             OpenPelt.Signal.VOLTAGE,
-                            plate_select=plate_select)
+                            plate_select=plate_select,
+                            steady_state_cycles=400)
     cbs = OpenPelt.circular_buffer_sequencer([10.00, 15.00,
                                               20.00, 25.00],
                                               pC.get_ncs())
