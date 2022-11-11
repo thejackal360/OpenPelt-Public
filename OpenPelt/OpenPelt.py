@@ -12,9 +12,19 @@ from enum import Enum
 import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
-# import PySpice.Spice.NgSpice.Shared
-import PySpice.Spice.OpenSPICE.Shared
-from PySpice.Spice.OpenSPICE import set_get_vsrc, set_get_isrc, set_send_data
+from os import environ
+try:
+    environ['OPENPELT_NGSPICE']
+    import PySpice.Spice.NgSpice.Shared
+    SimSharedParent = PySpice.Spice.NgSpice.Shared
+    SimSharedClass = SimSharedParent.NgSpiceShared
+    SimName = 'NgSpice'
+except KeyError:
+    import PySpice.Spice.OpenSPICE.Shared
+    SimSharedParent = PySpice.Spice.OpenSPICE.Shared
+    SimSharedClass = SimSharedParent.OpenSPICEShared
+    SimName = 'OpenSPICE'
+    from PySpice.Spice.OpenSPICE import set_get_vsrc, set_get_isrc, set_send_data
 
 try:
     from fenics import Constant, SubDomain, near
@@ -35,8 +45,8 @@ except ImportError:
 # Simulation Parameters
 
 DEFAULT_TEMP_SENSOR_SAMPLES_PER_SEC = 1.00
-DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 2.00
-DEFAULT_SIMULATION_TIME_IN_SEC = 1500.00
+DEFAULT_SIMULATION_TIMESTEPS_PER_SENSOR_SAMPLE = 100.00
+DEFAULT_SIMULATION_TIME_IN_SEC = 1000.00
 ROUND_DIGITS = 1
 ERR_TOL = 0.01
 
@@ -64,6 +74,7 @@ K_M = 1.768
 C_C = 2.00
 C_CONINT = 304.00
 K_CONINT = 3.1
+R_MEAS = 1e-3
 
 
 # Auxiliary Functions
@@ -178,7 +189,7 @@ if INCLUDE_FENICS:
         def inside(self, x, on_boundary):
             return on_boundary and near(x[1], -0.002, FENICS_TOL)
 
-class op_amp_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
+class op_amp_lib(SimSharedClass):
 
     def __init__(self,
                  controller_f,
@@ -186,7 +197,7 @@ class op_amp_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
                  **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
-        PySpice.Spice.OpenSPICE.Shared.ffi = cffi.FFI()
+        SimSharedParent.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.t = []
@@ -285,7 +296,7 @@ class op_amp_plant(Circuit):
         return self.ncs.get_v()
 
     def _simulator(self):
-        return self.simulator(simulator='OpenSPICE',
+        return self.simulator(simulator=SimName,
                               ngspice_shared=self.ncs)
 
     def run_sim(self):
@@ -350,7 +361,7 @@ class rc_ckt_plant(Circuit):
         return self.ncs.get_v()
 
     def _simulator(self):
-        return self.simulator(simulator='OpenSPICE',
+        return self.simulator(simulator=SimName,
                               ngspice_shared=self.ncs)
 
     def run_sim(self):
@@ -361,7 +372,7 @@ class rc_ckt_plant(Circuit):
                              end_time=self.sim_time_in_s@u_s,
                              use_initial_condition=True)
 
-class rc_ckt_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
+class rc_ckt_lib(SimSharedClass):
 
     def __init__(self,
                  controller_f,
@@ -370,7 +381,7 @@ class rc_ckt_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
                  **kwargs):
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
-        PySpice.Spice.OpenSPICE.Shared.ffi = cffi.FFI()
+        SimSharedParent.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.t = []
@@ -466,9 +477,11 @@ class tec_plant(Circuit):
         self.R('3', '1', '2', _k_m@u_Ohm)
         self.BehavioralSource('2',
                               '2',
-                              '1',
+                              '45',
                               i='((v(13)-v(12))/{})*({}*v(2)-0.9*((v(13)-v(12))/{}))'.format(_rp, _se, _rp))
         self.C('3', '2', self.gnd, _c_c@u_F, initial_condition=_tamb@u_V)
+        # AMMETER FOR QC
+        self.R('45', '45', '1', R_MEAS@u_Ohm)
         # THERMAL MASS
         self.R('4', '5', '2', _k_sil@u_Ohm)
         self.C('4', '5', self.gnd, _c_conint@u_F, initial_condition=_tamb@u_V)
@@ -665,12 +678,15 @@ class tec_plant(Circuit):
         """
         return self.ncs.get_i_arr()
 
+    def get_qc_arr(self):
+        return self.ncs.get_qc_arr()
+
     def _simulator(self):
         """
         Return simulator object that uses tec_lib ngspice shared library
         object.
         """
-        return self.simulator(simulator='OpenSPICE',
+        return self.simulator(simulator=SimName,
                               ngspice_shared=self.ncs)
 
     def run_sim(self):
@@ -706,7 +722,7 @@ class tec_plant(Circuit):
         num_incr = (val_max - val_min) / step_size
         assert float(int(num_incr)) == num_incr
         num_incr = int(num_incr)
-        sim = self.simulator(simulator='OpenSPICE',
+        sim = self.simulator(simulator=SimName,
                              ngspice_shared=self.ncs)
         sim.options(reltol=5e-6)
         tmp_controller_f = self.controller_f
@@ -736,6 +752,28 @@ class tec_plant(Circuit):
         assert len(tc) == len(self.get_tc_actual())
         self.set_controller_f(tmp_controller_f)
 
+    def qc_vs_v_graph(self, val_min, val_max, step_size):
+        self.V('99', '1', '2', 0.00@u_V)
+        num_incr = (val_max - val_min) / step_size
+        assert float(int(num_incr)) == num_incr
+        num_incr = int(num_incr)
+        sim = self.simulator(simulator=SimName,
+                             ngspice_shared=self.ncs)
+        sim.options(reltol=5e-6)
+        tmp_controller_f = self.controller_f
+        th = []
+        tc = []
+        v_range = np.linspace(val_min, val_max, num_incr)
+        for _v in v_range:
+            print("Testing {}V input...".format(_v))
+            self.set_controller_f(lambda _t, _dict : _v)
+            tmp_v, tmp_th, tmp_tc = self.run_sim()
+            th.append(tmp_th)
+            tc.append(tmp_tc)
+        self.ncs.v = v_range
+        self.set_controller_f(tmp_controller_f)
+        return [self.get_qc_arr(), self.ncs.v]
+
     def is_steady_state(self):
         """
         Have we reached steady state? Only useful for running transient
@@ -744,9 +782,9 @@ class tec_plant(Circuit):
         return self.ncs.is_steady_state()
 
 
-class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
+class tec_lib(SimSharedClass):
     """
-    Class that inherits from PySpice's OpenSPICEShared class. Abstracts ngspice
+    Class that inherits from PySpice's SimSharedClass. Abstracts simulator
     details from the rest of the library.
     """
 
@@ -764,7 +802,7 @@ class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         """
         # Temporary workaround:
         # https://github.com/FabriceSalvaire/PySpice/pull/94
-        PySpice.Spice.OpenSPICE.Shared.ffi = cffi.FFI()
+        SimSharedParent.ffi = cffi.FFI()
         super().__init__(**kwargs)
         self.controller_f = controller_f
         self.ref = ref
@@ -777,6 +815,7 @@ class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         self.tc_sensor = []
         self.v = []
         self.i = []
+        self.qc = []
         self.sim_timesteps_per_sensor_sample = sim_timesteps_per_sensor_sample
         self.timestep_counter = self.sim_timesteps_per_sensor_sample
         self.next_v = 0.00
@@ -884,6 +923,8 @@ class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         self.v.append(actual_vector_values['V(11)'].real)
         self.i.append(
             (actual_vector_values['V(13)'].real - actual_vector_values['V(12)'].real)/RP)
+        self.qc.append(
+            (actual_vector_values['V(1)'].real - actual_vector_values['V(45)'].real)/R_MEAS)
         try:
             self.next_v = self.controller_f(
                 actual_vector_values['time'].real,
@@ -956,6 +997,9 @@ class tec_lib(PySpice.Spice.OpenSPICE.Shared.OpenSPICEShared):
         voltage driving sims.
         """
         return self.i
+
+    def get_qc_arr(self):
+        return self.qc
 
     def get_vsrc_data(self, voltage, time, node, ngspice_id):
         """
