@@ -25,6 +25,8 @@ These are the dependencies one needs to install and use OpenPelt:
 
 A **requirements.txt** file is also included.
 
+Note: **requirements.txt** dependencies reflect ngspice OpenPelt version.
+Dependencies may be out of date for OpenSPICE version.
 
 ## Install
 
@@ -104,11 +106,6 @@ if __name__ == "__main__":
 
 ```
 
-And you can run the script as
-```
-$ LD_LIBRARY_PATH=path_to_libngspice python bang_bang.py. 
-```
-
 
 ## Available tests
 
@@ -130,15 +127,22 @@ where *name_of_script* can be one of the following:
   OpenPelt.
   - **fenics_heat_eqn** - This script shows how to use Fenics with OpenPelt.
  
-## Platforms where OpenPelt has been tested
+## Platforms where OpenPelt (OpenSPICE version) has been tested
+
+  - FreeBSD 13.0-RELEASE
+    - Clang 11.0.1
+    - Python 3.8.12
+    - x86_64 64bit
+
+  - Mac OS Ventura 13.0.1
+    - Clang 14.0.0
+    - Python 3.10.8
+    - x86_64 64bit
 
   - Ubuntu 20.04.4 LTS
     - GCC 9.3.0 and 9.4.0
     - Python 3.8.10
     - x86_64 64bit
-
-Note: libngspice.so compiled using GCC 9.4.0. thejackal360's ngspice fork is the
-used as the source: https://sourceforge.net/u/thejackal360/ngspice/ci/master/tree/.
 
 ## Contributing Guidelines
 

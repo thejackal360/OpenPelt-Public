@@ -13,18 +13,12 @@ import matplotlib.pyplot as plt
 from PySpice.Spice.Netlist import Circuit
 from PySpice.Unit import u_V, u_A, u_Ohm, u_F, u_s
 from os import environ
-try:
-    environ['OPENPELT_NGSPICE']
-    import PySpice.Spice.NgSpice.Shared
-    SimSharedParent = PySpice.Spice.NgSpice.Shared
-    SimSharedClass = SimSharedParent.NgSpiceShared
-    SimName = 'NgSpice'
-except KeyError:
-    import PySpice.Spice.OpenSPICE.Shared
-    SimSharedParent = PySpice.Spice.OpenSPICE.Shared
-    SimSharedClass = SimSharedParent.OpenSPICEShared
-    SimName = 'OpenSPICE'
-    from PySpice.Spice.OpenSPICE import set_get_vsrc, set_get_isrc, set_send_data
+
+import PySpice.Spice.OpenSPICE.Shared
+SimSharedParent = PySpice.Spice.OpenSPICE.Shared
+SimSharedClass = SimSharedParent.OpenSPICEShared
+SimName = 'OpenSPICE'
+from PySpice.Spice.OpenSPICE import set_get_vsrc, set_get_isrc, set_send_data
 
 try:
     from fenics import Constant, SubDomain, near
