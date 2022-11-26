@@ -1,4 +1,4 @@
-#!/usr/bin/env -S sh -x
+#!/usr/bin/env bash
 
 if [ "$1" == "basic_bang_bang" ]
 then
