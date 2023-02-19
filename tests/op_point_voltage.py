@@ -25,7 +25,7 @@ def voltage_op_point():
     pC = OpenPelt.tec_plant("Detector",
                             lambda: 0.00@u_V,
                             OpenPelt.Signal.VOLTAGE)
-    pC.characterize_plant(-5.00, 15.0, 0.1)
+    pC.characterize_plant(-5.00, 15.0, 0.5)
 
     heat = numpy.array([pC.get_v_arr(), pC.get_th_actual()])
     cool = numpy.array([pC.get_v_arr(), pC.get_tc_actual()])

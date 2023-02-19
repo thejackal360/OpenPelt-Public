@@ -28,7 +28,8 @@ def bang_bang(reference_temperatures=[50.00, 30.00]):
 
        pC (OpenPelt object):   Provides all the methods implemented in OpenPelt
     """
-    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE)
+    pC = OpenPelt.tec_plant("Detector", None, OpenPelt.Signal.VOLTAGE,
+                            steady_state_cycles=400)
     cbs = OpenPelt.circular_buffer_sequencer(reference_temperatures,
                                              pC.get_ncs())
     bbc = bang_bang_controller(cbs)
@@ -52,7 +53,7 @@ if __name__ == "__main__":
         os.makedirs('./figs/')
 
     # Run the simulation of a Bang-bang controller
-    (current, heat, cool), pC = bang_bang([45.00, 35.00, 50.00])
+    (current, heat, cool), pC = bang_bang([50.00, 30.00])
 
     # Plot the results using the plot_th_th method of OpenPelt
     pC.plot_th_tc(OpenPelt.IndVar.TIME, plot_driver=False, include_ref=True)

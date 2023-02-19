@@ -304,11 +304,11 @@ class op_amp_plant(Circuit):
         ivar_vals = self.ncs.get_t()
         v_leg_0, = ax.plot(ivar_vals,
                            self.ncs.get_v(),
-                           '-k', lw=1.5,
+                           '-', lw=1.5,
                            label="Output Voltage [V]", c="r")
         in_v_leg_0, = ax.plot(ivar_vals,
                               self.ncs.get_v_in(),
-                              '-k', lw=1.5,
+                              '-', lw=1.5,
                               label="Input Voltage [V]", c="g")
         ax.set_xlabel("Time [s]", fontsize=18,
                       weight='bold', color='black')
@@ -373,7 +373,7 @@ class rc_ckt_plant(Circuit):
         ivar_vals = self.ncs.get_t()
         v_leg_0, = ax.plot(ivar_vals,
                            self.ncs.get_v(),
-                           '-k', lw=1.5,
+                           '-', lw=1.5,
                            label="Capacitor Voltage [V]", c="r")
         ax.set_xlabel("Time [s]", fontsize=18,
                       weight='bold', color='black')
@@ -677,11 +677,11 @@ class tec_plant(Circuit):
                 assert len(ivar_vals) == len(self.ncs.get_i_arr())
         th_leg_0, = ax.plot(ivar_vals,
                             self.ncs.get_th_actual(),
-                            '-k', lw=1.5,
+                            '-', lw=1.5,
                             label="Hot Side Temp [C]", c="r")
         tc_leg_0, = ax.plot(ivar_vals,
                             self.ncs.get_tc_actual(),
-                            '-b', lw=1.5,
+                            '-', lw=1.5,
                             label="Cold Side Temp [C]", c="b")
         if include_ref:
             ref_leg_0, = ax.plot(ivar_vals,
